@@ -1,0 +1,16 @@
+{
+  "name": "specforge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "specforge": "./bin/specforge.mjs"
+  },
+  "scripts": {
+    "specforge": "node ./bin/specforge.mjs",
+    "specforge:help": "node ./bin/specforge.mjs --help"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "projectIntent": "把一组素材做成恐怖叙事游戏 spec",
+  "productType": "horror",
+  "gameplaySeed": "玩家以第一人称阅读故事，在每章做 2 个选择，章末完成一个小解密，最终走向固定结局。",
+  "structureMode": "linear",
+  "imageMode": "required-assets",
+  "accuracyMode": "fantasy",
+  "visualTaste": "阴森、压抑、暗色、需要 CG 和恐怖 UI 特效",
+  "extraConstraints": "玩法确认后再生成最终 spec；不要自动评估。",
+  "confirmGameplay": true
+}

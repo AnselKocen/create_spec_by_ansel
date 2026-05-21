@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AM / PM Coffee</title>
+<style>
+  body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #e8e4dc;
+  }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 600 500" width="600" height="500" xmlns="http://www.w3.org/2000/svg">
+  <!-- AM Hot Coffee Mug -->
+  <!-- Mug body -->
+  <ellipse cx="195" cy="370" rx="85" ry="18" fill="#d4d0c8"/>
+  <path d="M110 200 C110 200, 105 370, 120 380 Q195 420 270 380 C285 370, 280 200, 280 200 Z" fill="#f5f0e8" stroke="#e0dbd3" stroke-width="1"/>
+  <!-- Mug rim -->
+  <ellipse cx="195" cy="200" rx="85" ry="20" fill="#f9f5ed" stroke="#e0dbd3" stroke-width="1"/>
+  <!-- Coffee inside -->
+  <ellipse cx="195" cy="205" rx="72" ry="15" fill="#5c3d2e"/>
+  <!-- Mug handle (right side, hidden behind iced coffee position) -->
+  <!-- AM text -->
+  <text x="195" y="310" text-anchor="middle" font-family="'Comic Sans MS', cursive, sans-serif" font-size="28" fill="#3a3a3a" font-weight="bold">AM</text>
+
+  <!-- Iced Coffee Cup -->
+  <!-- Cup shadow -->
+  <ellipse cx="400" cy="400" rx="95" ry="15" fill="#d4d0c8"/>
+  <!-- Cup body - tapered plastic cup -->
+  <path d="M305 130 L320 400 Q400 430 480 400 L495 130 Z" fill="rgba(255,255,255,0.4)" stroke="#ccc8c0" stroke-width="1.5"/>
+  <!-- Iced coffee liquid -->
+  <path d="M308 155 L322 395 Q400 420 478 395 L492 155 Z" fill="#8b6340"/>
+  <!-- Cup rim / lid -->
+  <rect x="295" y="120" width="210" height="18" rx="4" fill="#f5f0e8" stroke="#d8d3cb" stroke-width="1"/>
+  <!-- Straw -->
+  <rect x="420" y="40" width="12" height="160" rx="3" fill="#2d6b45"/>
+  <!-- Straw inside cup -->
+  <rect x="422" y="200" width="8" height="200" rx="2" fill="#2d6b45" opacity="0.6"/>
+
+  <!-- Ice cubes -->
+  <g opacity="0.55">
+    <!-- Ice cube 1 -->
+    <rect x="340" y="200" width="45" height="40" rx="8" fill="#e8d8c8" stroke="#d4c4b4" stroke-width="1" transform="rotate(-10, 362, 220)"/>
+    <!-- Ice cube 2 -->
+    <rect x="400" y="180" width="50" height="42" rx="8" fill="#e8d8c8" stroke="#d4c4b4" stroke-width="1" transform="rotate(8, 425, 200)"/>
+    <!-- Ice cube 3 -->
+    <rect x="355" y="270" width="48" height="40" rx="8" fill="#e8d8c8" stroke="#d4c4b4" stroke-width="1" transform="rotate(5, 379, 290)"/>
+    <!-- Ice cube 4 -->
+    <rect x="410" y="260" width="44" height="38" rx="8" fill="#e8d8c8" stroke="#d4c4b4" stroke-width="1" transform="rotate(-12, 432, 280)"/>
+    <!-- Ice cube 5 -->
+    <rect x="330" y="330" width="42" height="38" rx="8" fill="#e8d8c8" stroke="#d4c4b4" stroke-width="1" transform="rotate(15, 351, 350)"/>
+    <!-- Ice cube 6 -->
+    <rect x="390" y="340" width="46" height="38" rx="8" fill="#e8d8c8" stroke="#d4c4b4" stroke-width="1" transform="rotate(-5, 413, 360)"/>
+  </g>
+
+  <!-- PM text on ice cube -->
+  <text x="400" y="305" text-anchor="middle" font-family="'Comic Sans MS', cursive, sans-serif" font-size="24" fill="#3a3a3a" font-weight="bold">PM</text>
+
+  <!-- Person climbing -->
+  <g transform="translate(275, 140)">
+    <!-- Head -->
+    <circle cx="10" cy="-15" r="12" fill="#f0d5b8"/>
+    <!-- Hair / beanie -->
+    <path d="M-2 -27 Q10 -38 22 -27 Q22 -18 10 -18 Q-2 -18 -2 -27 Z" fill="#5c3d2e"/>
+    <rect x="-4" y="-22" width="28" height="6" rx="3" fill="#5c3d2e"/>
+    <!-- Body / jacket -->
+    <path d="M0 -3 L0 35 L20 35 L20 -3 Z" fill="#b8863e" rx="3"/>
+    <!-- Left arm (reaching up to cup) -->
+    <path d="M20 5 Q35 -15 30 -30" stroke="#b8863e" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <!-- Hand -->
+    <circle cx="30" cy="-30" r="4" fill="#f0d5b8"/>
+    <!-- Right arm (on mug) -->
+    <path d="M0 10 Q-15 20 -20 30" stroke="#b8863e" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <!-- Left leg -->
+    <path d="M5 35 L-5 65" stroke="#2d2d2d" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <!-- Left foot -->
+    <path d="M-5 65 L-12 68" stroke="#2d2d2d" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <!-- Right leg -->
+    <path d="M15 35 L25 60" stroke="#2d2d2d" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <!-- Right foot -->
+    <path d="M25 60 L32 62" stroke="#2d2d2d" stroke-width="7" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>
+</body>
+</html>
