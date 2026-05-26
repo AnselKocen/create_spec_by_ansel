@@ -16,6 +16,7 @@
 | 内容规模 | 5-7 章；每章 3-4 个知识点；总题量 20-25 题；每章 3 个成就 |
 | 准确性模式 | strict |
 | 生图范围 | 标题页 / 全局背景图需要真实位图生图；核心地图、剖面、气候图和地理模拟必须用 SVG/Canvas/HTML 实现 |
+| UI 风格策略 | 默认 `atlas-light` 明亮专业地图册；可按内容选择 `field-expedition`、`satellite-gis`、`earth-science-museum`、`night-observatory` 等预设 |
 | IMAGE_GENERATION_TIMING | first-run-cache |
 | 运行与存储 | 纯前端单文件；进度使用 localStorage；背景图片 Blob 使用 IndexedDB 缓存 |
 
@@ -26,7 +27,7 @@
 每个知识点对应一个高精度 SVG / Canvas 地理可视化场景。这个场景贯穿：
 
 ```text
-讲解动态演示 → 玩家参数探索 → 多题型答题 → 动态反馈演示
+讲解动态演示 → 玩家参数探索 → 多题型答题 → 查看反馈
 ```
 
 如果去掉地图、剖面、气候图、图层变化和动态反馈后只剩文字与题目，本产品即判定未完成。
@@ -118,17 +119,40 @@
 
 ### 整体气质
 
-视觉方向为：**沉浸酷炫的专业地理观测站 + 精密地图册 + 动态地形沙盘**。
+视觉方向为：**可变地理视觉系统：明亮专业地图册为默认，按内容切换多套 UI 风格，并始终保留多彩地理语义色板**。
 
-用户打开页面应感觉自己进入一个高科技地理观测室：前景是可操作的地形沙盘、气候数据面板、经纬网、等高线、风场箭头、洋流流线、雨带粒子和区域图层；背景是通过真实生图获得的地理观测站氛围图。
+用户打开页面时，应首先感到这是一个可操作、可判读、颜色丰富但秩序清楚的地理学习工作台，而不是被单一黑色科技面板包住的通用 dashboard。前景始终是可操作的地形沙盘、地图图层、气候图、风场箭头、洋流流线、雨带粒子和区域图层；背景通过真实生图获得，并根据 `UI_STYLE_PRESET` 匹配不同风格。
+
+默认风格为 `atlas-light`：明亮专业地图册 + 动态地形沙盘 + 多彩地理数据图层。`night-observatory` 仅作为灾害、大气、海洋、夜间观测等内容的可选深色预设，不得作为唯一默认。
+
+### UI 风格预设
+
+最终实现必须在构建 / 填充阶段选择一个初始 `UI_STYLE_PRESET`，并可选地在设置中允许最终用户切换。无论使用哪种风格，地理变量的颜色编码、图例、单位和可读性优先级都高于装饰风格。
+
+| 预设 ID | 风格名称 | 适合内容 | 背景 / 表面 | 面板和控件 | 氛围动效 |
+|---------|----------|----------|-------------|------------|----------|
+| `atlas-light` | 明亮专业地图册 + 动态地形沙盘 | 通用地理、区域地理、课堂学习、综合复习 | 雾白、浅灰地图纸、浅石绿、淡海蓝 | 白色 / 浅灰半透明面板、细灰线、少量墨绿或海蓝强调 | 经纬网淡入、等高线展开、轻微纸纹和图层滑入 |
+| `field-expedition` | 野外研学采样台 | 地貌、水文、生态、区域研学 | 暖白纸面、岩灰、土壤色、植被绿 | 采样标签式面板、地图夹板质感、自然色按钮 | 风沙微粒、河流细粒、地形阴影缓慢变化 |
+| `satellite-gis` | 卫星 / GIS 专业工作台 | 遥感、城市、交通、人口、资源 | 中性灰、浅钢蓝、白色工作台、少量深色地图窗口 | GIS 图层列表、规整网格、紧凑数据读数 | 扫描线、图层淡入、热力层切换 |
+| `earth-science-museum` | 地球科学展厅 | 小学科普、成人通识、跨章节综合 | 明亮暖白、海洋蓝、地层橙、草地绿 | 展陈式信息牌、圆角较小的明亮模块、清晰图例 | 展台灯光、剖面展开、气候带渐变 |
+| `night-observatory` | 夜间地理观测站 | 灾害、洋流、大气、宇宙尺度或需要强沉浸的章节 | 炭黑、深海蓝、冷青、低饱和紫灰 | 深色半透明仪表、细线发光、琥珀读数 | 经纬网扫描、卫星轨迹、低亮风场粒子 |
+
+### 风格选择规则
+
+- 默认选择 `atlas-light`，除非内容文件明确需要夜间、灾害、深海、遥感或强沉浸氛围。
+- 小学科普或通识内容优先 `earth-science-museum`，保持明亮、亲近、可读。
+- 区域案例、城市、交通、资源和人口分析优先 `satellite-gis`。
+- 野外地貌、水文、生态和研学路线优先 `field-expedition`。
+- `night-observatory` 适合特定章节或全局主题，但不能让所有页面都变成单一深蓝黑科技风。
+- 同一产品可以使用一个全局预设，也可以让章节继承全局预设并按章节主题色轻微变化；不得每页随机换风格导致体验割裂。
 
 ### 视觉层级
 
 | 层级 | 内容 | 实现要求 |
 |------|------|----------|
-| 背景层 | AI 生成的全局地理观测站背景图 | 固定铺满视口，不能遮挡 UI |
-| 遮罩层 | 中性灰暗化遮罩 | 提升前景可读性，不改变地理图层色彩含义 |
-| 氛围层 | 经纬网扫描、雨带粒子、风场微粒、等高线流光 | `pointer-events: none`，不得影响操作 |
+| 背景层 | AI 生成的全局地理背景图，风格由 `UI_STYLE_PRESET` 决定 | 固定铺满视口，不能遮挡 UI |
+| 调和层 | 中性亮/暗遮罩或轻纸纹层 | 提升前景可读性，不改变地理图层色彩含义 |
+| 氛围层 | 经纬网扫描、雨带粒子、风场微粒、等高线流光、采样点或扫描线 | `pointer-events: none`，不得影响操作 |
 | 主 UI 层 | 章节、题目、参数面板、图例、按钮 | 高对比度、清晰分组、响应式 |
 | 核心可视化层 | SVG 地图、剖面、气候图、Canvas 动态粒子 | 判读优先，所有编码有地理含义 |
 | 反馈层 | 正误反馈、图层高亮、成就 toast | 不遮挡关键地图区域，出现后可关闭或自动消退 |
@@ -136,10 +160,11 @@
 ### 背景系统
 
 - 背景图必须由真实生图模型或图像生成 API/工具生成。
-- 背景图方向：未来地理观测站、全息地形沙盘、地图数据屏、气候图层、专业制图实验室，无人物，无可读文字。
+- 背景图方向必须来自当前 `UI_STYLE_PRESET` 的画风基底，例如明亮地图册、野外研学台、GIS 工作台、地球科学展厅或夜间观测站；不得固定写死为黑色观测站。
 - 背景图固定铺满视口：`background-size: cover; background-position: center; background-attachment: fixed`。
-- 背景图上方叠加中性灰遮罩，建议 `rgba(0,0,0,0.36)` 左右，内容密集页可加深，标题页可略减淡。
-- 遮罩必须为中性灰，不得使用带强色相的遮罩，以免污染地图图层和气候图颜色判断。
+- 背景图上方叠加中性调和层：明亮预设可用 `rgba(255,255,255,0.28)`、`rgba(245,247,242,0.18)` 或轻纸纹；深色预设可用 `rgba(0,0,0,0.28-0.42)`。
+- 调和层必须保持中性，不得使用带强色相的遮罩，以免污染地图图层和气候图颜色判断。
+- 核心页面如果背景过于活跃，必须增加浅色或深色工作台底板，保证地图、题目和图例可读。
 
 ### 标题设计
 
@@ -150,7 +175,12 @@
 
 ### UI 面板风格
 
-- 面板采用深色半透明底、毛玻璃、细线描边和轻微发光边缘，类似专业仪表和地图图层控制台。
+- 面板风格由 `UI_STYLE_PRESET` 决定，不默认深色。
+- `atlas-light` 使用浅色半透明地图纸面板、细灰线、低饱和绿色/海蓝强调和清晰阴影。
+- `field-expedition` 使用暖白纸面、岩灰边框、采样标签和自然色按钮。
+- `satellite-gis` 使用紧凑 GIS 控制台、白/灰面板、钢蓝强调和图层列表。
+- `earth-science-museum` 使用明亮展陈式信息牌、清晰色块和亲和但不过度圆润的控件。
+- `night-observatory` 才使用深色半透明底、毛玻璃、细线描边和轻微发光边缘。
 - 页面区块不做大面积浮夸卡片堆叠；核心是地图/剖面/图表工作台。
 - 图例面板、参数面板、题目面板和反馈面板必须视觉区分。
 - 卡片圆角 4-8px，保持仪器感，不要过度圆润。
@@ -159,16 +189,16 @@
 
 ### 配色规范
 
-本产品需要更丰富的地理色彩系统，但丰富性主要用于地图、剖面、气候、水文、灾害和人文图层；UI 底色保持克制，避免变成花哨的通用科技页面。
+本产品需要更丰富的地理色彩系统。丰富性主要用于地图、剖面、气候、水文、灾害和人文图层；UI 底色可以明亮或深色，但必须保持克制，避免变成花哨的通用科技页面。
 
 #### UI 基础色
 
 | 用途 | 方向 | 说明 |
 |------|------|------|
-| 背景/表面 | 深色地图蓝黑、炭灰、低饱和墨绿、深海军蓝 | 与背景图融合，给图层留出对比 |
-| 面板分隔 | 低透明冷灰、低饱和青灰、暗橄榄灰 | 用于边框、分割线、次级容器 |
-| 文字/标注 | 冷白、浅灰、浅青、浅暖白 | 对比度 ≥ 4.5:1；标注不得被彩色图层吞掉 |
-| 交互强调 | 青蓝、琥珀、雷达绿、珊瑚红、地图黄 | 用于按钮、当前章节、可交互提示，不作为随意装饰 |
+| 背景/表面 | 雾白、浅灰地图纸、暖白、岩灰、浅钢蓝、低饱和墨绿；深色预设可用炭黑、深海蓝 | 与背景图融合，给图层留出对比；黑色不是默认 |
+| 面板分隔 | 低透明冷灰、纸面灰、低饱和青灰、岩灰、暗橄榄灰 | 用于边框、分割线、次级容器 |
+| 文字/标注 | 深墨绿、炭灰、地图黑、冷白、浅暖白 | 对比度 ≥ 4.5:1；标注不得被彩色图层吞掉 |
+| 交互强调 | 青蓝、琥珀、雷达绿、珊瑚红、地图黄、植被绿、海洋蓝 | 用于按钮、当前章节、可交互提示，不作为随意装饰 |
 | 正确/错误 | 清晰绿色 / 温和红色 | 反馈专用，不与地理编码冲突 |
 
 #### 地理专题色板
@@ -409,14 +439,28 @@ IMAGE_GENERATION_TIMING = first-run-cache
 ### 背景图统一画风基底
 
 ```text
-STYLE_PROMPT_BASE =
-immersive futuristic geography observatory, professional cartography lab, holographic terrain sandbox, layered contour maps, climate data panels, atmospheric flow visualization, deep cinematic lighting, precise scientific visualization mood, high detail, wide background composition, no people, no readable text
+STYLE_PROMPT_BASE_BY_PRESET =
+
+atlas-light:
+bright professional geography atlas workbench, layered topographic maps, clean cartography table, terrain sandbox model, soft daylight, precise contour lines, subtle GIS panels, rich natural geographic color accents, calm educational atmosphere, high detail, wide background composition, no people, no readable text
+
+field-expedition:
+modern field geography study station, relief model on a survey table, mineral and soil sample trays, folded non-readable maps, outdoor daylight, natural greens and earth tones, scientific but warm, high detail, wide background composition, no people, no readable text
+
+satellite-gis:
+clean satellite mapping studio, GIS layer panels, crisp terrain data screens, aerial imagery mood, neutral surfaces, sharp grid overlays, professional geospatial interface, high detail, wide background composition, no people, no readable text
+
+earth-science-museum:
+colorful earth science museum learning lab, illuminated terrain model, climate ribbons, ocean current displays, tectonic layer exhibit, bright educational atmosphere, high detail, wide background composition, no people, no readable text
+
+night-observatory:
+night geography observatory, professional cartography lab, holographic terrain sandbox, layered contour maps, climate data panels, atmospheric flow visualization, deep cinematic lighting, precise scientific visualization mood, high detail, wide background composition, no people, no readable text
 ```
 
 项目级 negative prompt：
 
 ```text
-people, readable text, watermark, logo, blurry map labels, distorted UI text, low resolution, cartoonish clutter, fantasy monsters, inaccurate flags, overexposed, messy composition
+people, readable text, watermark, logo, blurry map labels, distorted UI text, low resolution, cartoonish clutter, fantasy monsters, inaccurate flags, overexposed, messy composition, one-note black interface unless night-observatory is selected
 ```
 
 ### 静态资产计划：IMAGE_ASSET_MANIFEST
@@ -427,20 +471,22 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 {
   "asset_manifest_version": "geo-bg-v1",
   "image_generation_timing": "first-run-cache",
-  "style_prompt_base": "immersive futuristic geography observatory, professional cartography lab, holographic terrain sandbox, layered contour maps, climate data panels, atmospheric flow visualization, deep cinematic lighting, precise scientific visualization mood, high detail, wide background composition, no people, no readable text",
+  "ui_style_preset": "{{UI_STYLE_PRESET}}",
+  "style_prompt_base": "{{SELECTED_STYLE_PROMPT_BASE_FROM_UI_STYLE_PRESET}}",
   "assets": [
     {
-      "id": "global_geography_observatory_bg",
+      "id": "global_geography_style_bg",
       "purpose": "标题页 / 全局背景图",
       "required": true,
       "plan_status": "required",
       "initial_runtime_status": "pending",
-      "style_prompt_base": "STYLE_PROMPT_BASE",
-      "prompt": "immersive futuristic geography observatory, professional cartography lab, holographic terrain sandbox in the foreground, layered contour maps projected as translucent panels, climate data screens showing abstract non-readable graphs, wind and ocean current visualization, deep cinematic blue-green lighting, precise scientific atmosphere, wide background composition, no people, no readable text, high detail environmental concept art",
-      "negative_prompt": "people, readable text, watermark, logo, blurry map labels, distorted UI text, low resolution, cartoonish clutter, fantasy monsters, inaccurate flags, overexposed, messy composition",
+      "ui_style_preset": "{{UI_STYLE_PRESET}}",
+      "style_prompt_base": "{{SELECTED_STYLE_PROMPT_BASE_FROM_UI_STYLE_PRESET}}",
+      "prompt": "{{SELECTED_STYLE_PROMPT_BASE_FROM_UI_STYLE_PRESET}}, foreground contains an abstract terrain sandbox, layered contour map surfaces, climate and hydrology visualization panels with no readable text, clear wide composition with open space for UI overlays, high detail environmental concept art",
+      "negative_prompt": "people, readable text, watermark, logo, blurry map labels, distorted UI text, low resolution, cartoonish clutter, fantasy monsters, inaccurate flags, overexposed, messy composition, one-note black interface unless night-observatory is selected",
       "aspect_ratio": "16:9",
       "generation_timing": "first-run-cache",
-      "cache_key": "{{PROJECT_ID}}/geo-bg-v1/global_geography_observatory_bg/{{PROMPT_HASH}}",
+      "cache_key": "{{PROJECT_ID}}/geo-bg-v1/{{UI_STYLE_PRESET}}/global_geography_style_bg/{{PROMPT_HASH}}",
       "prompt_hash": "{{PROMPT_HASH}}",
       "seed_source": { "type": "none" },
       "storage_driver": "indexeddb_blob",
@@ -459,13 +505,14 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 | `required` | 是否为进入核心体验前必须完成 |
 | `plan_status` | 固定为 `required` / `optional`，不得表示已生成 |
 | `initial_runtime_status` | `pending` / `seed_available` |
+| `ui_style_preset` | 当前背景图绑定的 UI 风格预设 |
 | `style_prompt_base` | 项目统一画风基底 |
 | `prompt` | 每张图完整正向提示词 |
 | `negative_prompt` | 项目级简洁负向提示词 |
 | `aspect_ratio` | 目标比例 |
 | `generation_timing` | `first-run-cache` |
 | `cache_key` | 稳定缓存键 |
-| `prompt_hash` | prompt + style base + negative prompt + manifest version 的版本哈希 |
+| `prompt_hash` | prompt + style base + negative prompt + `ui_style_preset` + manifest version 的版本哈希 |
 | `seed_source` | `first-run-cache` 默认 `{ "type": "none" }` |
 | `storage_driver` | 固定 `indexeddb_blob` |
 
@@ -477,7 +524,7 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 
 ```json
 {
-  "asset_id": "global_geography_observatory_bg",
+  "asset_id": "global_geography_style_bg",
   "cache_key": "{{CACHE_KEY}}",
   "generation_status": "pending",
   "cache_status": "not_checked",
@@ -508,7 +555,7 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 ```json
 {
   "cache_key": "{{CACHE_KEY}}",
-  "asset_id": "global_geography_observatory_bg",
+  "asset_id": "global_geography_style_bg",
   "asset_manifest_version": "geo-bg-v1",
   "prompt_hash": "{{PROMPT_HASH}}",
   "blob": "{{IMAGE_BLOB}}",
@@ -531,9 +578,9 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 
 当缓存缺失时，最终 app 必须显示主题化资产准备页：
 
-- 标题可用“正在准备地理观测站背景”。
+- 标题可用“正在准备地理学习背景”或“正在准备 {{UI_STYLE_PRESET}} 视觉资产”。
 - 显示已完成数量 / 总数量、当前资产用途、生成状态。
-- 背景可使用 CSS 深色底和 SVG 经纬网临时氛围，但不得把它当作最终背景图。
+- 资产准备页的临时视觉应匹配当前 UI 风格：明亮预设使用浅色地图纸、经纬网和轻量进度条；深色预设可使用深色底和 SVG 经纬网临时氛围。不得把临时 CSS/SVG 视觉当作最终背景图。
 - 必需图片未 ready 前不得进入标题页或核心体验。
 - cache hit 时只显示短暂“正在载入视觉资产”，不得误导用户以为重新生图。
 
@@ -552,13 +599,13 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 | 优先级 | 功能名称 | 解决什么问题 | 输入 | 输出 |
 |--------|----------|--------------|------|------|
 | P0 | 首次启动背景图缓存 | 需要真实背景图且避免重复生成 | 打开 app | IndexedDB cache hit 或生成并缓存背景图 |
-| P0 | 标题页 | 建立沉浸式地理观测站入口 | 点击开始/继续 | 进入章节主页 |
+| P0 | 标题页 | 建立与 `UI_STYLE_PRESET` 匹配的地理学习入口 | 点击开始/继续 | 进入章节主页 |
 | P0 | 章节主页 | 用户需要看到学习路径和解锁进度 | 点击章节 | 进入当前章节或回看已完成章节 |
 | P0 | 知识点四阶段闭环 | 保证学习、探索、答题、反馈在同一地理场景中完成 | 点击/调参/答题 | 动态可视化 + 解析 + 进度推进 |
 | P0 | 高精度 SVG 地理可视化 | 建立地理空间感和图像判读能力 | 内容文件填充的知识点与参数 | 地图、剖面、气候图、图层、标注 |
 | P0 | 参数探索 | 用户需要亲手改变地理变量 | 滑块、时间轴、风向旋钮、图层开关、拖拽点 | SVG/Canvas 实时响应、数值面板同步 |
 | P0 | 多题型答题 | 地理学习需要地图判读和图表分析，不只选择题 | 选择、点选、框选、拖拽、排序、匹配 | 锁定答案、进入反馈演示 |
-| P0 | 动态反馈演示 | 正误都要回到地理过程本身解释 | 作答结果 | 正确过程或错误后果的可视化演示 |
+| P0 | 查看反馈 | 正误都要回到地理过程本身解释 | 作答结果 | 正确过程或错误后果的可视化演示 |
 | P0 | 章末总结 | 巩固本章核心变量、图像判读方法和误区 | 自动触发 | 知识卡片、关键图层回顾、成就展示 |
 | P0 | 成就系统 | 用鼓励性成就替代冷冰冰分数 | 首次作答、探索行为 | toast、成就墙、章节成就 |
 | P0 | 存档续学 | 用户离开后继续 | 自动保存/继续学习 | localStorage 恢复进度 |
@@ -572,6 +619,7 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 | P1 | 回放与慢放 | 复杂地理过程需要反复观察 | 播放/暂停/慢放 | 时间轴回放 |
 | P1 | 错题回看 | 用户需要复盘误区 | 点击错题/章节回看 | 错题场景和正确反馈 |
 | P1 | 隐藏标注挑战 | 提升图像判读训练强度 | 切换挑战模式 | 隐藏部分标签后作答 |
+| P1 | UI 风格预设切换 | 用户或教师可能需要明亮、GIS、展厅或夜间等不同视觉气质 | 设置中选择预设 | 页面表面、背景、面板和氛围动效切换；地理编码色不变 |
 | P1 | 探索彩蛋 | 奖励好奇心 | 极端但合理参数组合 | 创意成就或额外解释 |
 
 ## 八、用户动线
@@ -595,7 +643,7 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 → 章节主页
 → 选择当前可进入章节
 → 章节过渡
-→ [知识点闭环：讲解动态 SVG → 参数探索 → 多题型答题 → 动态反馈演示] × 3-4
+→ [知识点闭环：讲解动态 SVG → 参数探索 → 多题型答题 → 查看反馈] × 3-4
 → 章末总结 + 成就
 → 返回章节主页并解锁下一章
 → 全部章节完成
@@ -720,6 +768,7 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 | `knowledge_point` | 一对少 | `question` | 每个知识点 1-2 道题 |
 | `question` | 一对多 | `answer_interaction` | 不同题型有不同交互数据 |
 | `chapter` | 一对多 | `achievement` | 每章 3 个成就 |
+| `visual_style_preset` | 一对多 | `chapter_theme_palette` | 全局 UI 风格可叠加章节主题色 |
 | `image_asset_manifest` | 一对多 | `image_asset_runtime_state` | 静态计划对应运行时状态 |
 
 ### meta.json
@@ -731,11 +780,50 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
   "game_title": "{{GAME_NAME}}",
   "game_subtitle": "{{GAME_SUBTITLE}}",
   "title_tagline": "{{TITLE_TAGLINE}}",
+  "ui_style_preset": "atlas-light / field-expedition / satellite-gis / earth-science-museum / night-observatory",
+  "chapter_theme_palette": "{{CHAPTER_THEME_PALETTE}}",
   "difficulty": "基础/进阶/综合",
   "product_delivery": "completed_learning_game",
   "accuracy_mode": "strict",
   "image_generation_timing": "first-run-cache",
   "closing_message": "{{CLOSING_MESSAGE}}"
+}
+```
+
+### visual_style.json
+
+```json
+{
+  "selected_ui_style_preset": "{{UI_STYLE_PRESET}}",
+  "available_presets": [
+    "atlas-light",
+    "field-expedition",
+    "satellite-gis",
+    "earth-science-museum",
+    "night-observatory"
+  ],
+  "style_selection_reason": "{{WHY_THIS_PRESET_MATCHES_CONTENT}}",
+  "surface_tokens": {
+    "page_background": "{{PAGE_BACKGROUND_COLOR}}",
+    "panel_background": "{{PANEL_BACKGROUND_COLOR}}",
+    "panel_border": "{{PANEL_BORDER_COLOR}}",
+    "text_primary": "{{TEXT_PRIMARY_COLOR}}",
+    "text_secondary": "{{TEXT_SECONDARY_COLOR}}",
+    "interactive_accent": "{{INTERACTIVE_ACCENT_COLOR}}"
+  },
+  "chapter_theme_palettes": [
+    {
+      "chapter_id": "ch1",
+      "theme": "{{CHAPTER_THEME}}",
+      "accent_colors": ["{{ACCENT_COLOR}}"],
+      "geo_semantic_palette_overrides": "{{ONLY_IF_GEOGRAPHIC_MEANING_REQUIRES_IT}}"
+    }
+  ],
+  "constraints": [
+    "geographic semantic colors override decorative UI colors",
+    "black or deep-blue dominance is allowed only when night-observatory is selected",
+    "all map colors must be explained by legend or labels"
+  ]
 }
 ```
 
@@ -957,7 +1045,8 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
   "unlocked_achievements": [],
   "settings": {
     "reduced_motion": false,
-    "show_labels": true
+    "show_labels": true,
+    "ui_style_preset": "{{CURRENT_UI_STYLE_PRESET}}"
   }
 }
 ```
@@ -1023,6 +1112,13 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 - 本 spec 是“可填充玩法框架”，不是单个写死的地理章节实例。
 - 具体章节名、知识点、区域案例、参数数值、题目、图例、成就名和解析由 `skills/内容文件` 填充。
 - 本 spec 负责定义内容如何提取、映射、组织、交互、表现和验收。
+
+### UI 风格预设约束
+
+- 最终实现必须选择并记录 `UI_STYLE_PRESET`，默认使用 `atlas-light`。
+- `UI_STYLE_PRESET` 只控制页面表面、背景图方向、面板质感、标题氛围和装饰动效；不得改变地理数据本身的颜色语义、图例和判读规则。
+- 如果实现运行时风格切换，切换只影响 UI token、背景资产和装饰氛围；题目答案、地图图层、参数规则和地理反馈不得变化。
+- 黑色 / 深蓝科技风只能作为 `night-observatory` 的明确选择，不得让所有风格都退化成同一套黑色 dashboard。
 
 ### strict 准确性约束
 
@@ -1183,16 +1279,17 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 2. 读取所有 `skills/内容文件` 的完整正文，建立 `source_material.json`。
 3. 从内容文件中提取地理对象、关系、过程、规则、数据、可操作变量、可验证结论和图表材料。
 4. 根据内容递进生成 5-7 章，每章 3-4 个知识点。
-5. 为每个知识点设计一个可复用的 SVG 或 SVG + Canvas 可视化场景。
-6. 为每个可视化定义图层、图例、参数、状态、题型和反馈演示。
-7. 先建立 `IMAGE_ASSET_MANIFEST`，为全局背景图写完整 prompt、negative prompt、cache key 和 prompt hash。
-8. 实现首次启动图片缓存流程：查 IndexedDB，cache miss 时调用真实生图能力，写入 Blob，cache hit 不调用生图。
-9. 实现标题页、章节主页、章节过渡、知识点四阶段闭环、章末总结和通关成就墙。
-10. 实现多题型：3 选 1、地图点选/框选、拖拽标注、图层匹配、气候图判读、剖面排序、参数预测。
-11. 实现 localStorage 进度与 IndexedDB 图片缓存，严格区分两者。
-12. 对每章执行 strict 准确性自检，修正地理事实、因果、图表、单位和题目错误。
-13. 对 SVG/CSS 绘制指南执行专项自检，确认地理可视化原语、质感配方、动效模式、标注/图例、交互态、常见画错点均已落实。
-14. 对照验收标准全量自测。
+5. 根据内容文件、目标用户和章节主题选择 `UI_STYLE_PRESET`，默认 `atlas-light`；如选择 `night-observatory`，必须说明为何需要深色夜间观测氛围。
+6. 为每个知识点设计一个可复用的 SVG 或 SVG + Canvas 可视化场景。
+7. 为每个可视化定义图层、图例、参数、状态、题型和反馈演示。
+8. 先建立 `IMAGE_ASSET_MANIFEST`，按 `UI_STYLE_PRESET` 为全局背景图写完整 prompt、negative prompt、cache key 和 prompt hash。
+9. 实现首次启动图片缓存流程：查 IndexedDB，cache miss 时调用真实生图能力，写入 Blob，cache hit 不调用生图。
+10. 实现标题页、章节主页、章节过渡、知识点四阶段闭环、章末总结和通关成就墙。
+11. 实现多题型：3 选 1、地图点选/框选、拖拽标注、图层匹配、气候图判读、剖面排序、参数预测。
+12. 实现 localStorage 进度与 IndexedDB 图片缓存，严格区分两者。
+13. 对每章执行 strict 准确性自检，修正地理事实、因果、图表、单位和题目错误。
+14. 对 SVG/CSS 绘制指南执行专项自检，确认地理可视化原语、质感配方、动效模式、标注/图例、交互态、常见画错点均已落实。
+15. 对照验收标准全量自测。
 
 ### 开发时禁止
 
@@ -1202,6 +1299,7 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 - 禁止在前端硬编码私密模型/API key。
 - 禁止用纯文字“正确/错误”代替反馈演示。
 - 禁止为了节省实现跳过探索阶段或多题型。
+- 禁止把所有 UI 风格都做成同一套黑色 / 深蓝科技面板。
 
 ## 十六、验收标准
 
@@ -1234,7 +1332,8 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 
 - [ ] 背景图由真实生图模型/API/工具生成。
 - [ ] CSS 渐变、SVG、Canvas、emoji、文字占位没有被当作生图。
-- [ ] `IMAGE_ASSET_MANIFEST` 包含 asset id、purpose、required、plan_status、style prompt base、full prompt、negative prompt、aspect ratio、generation timing、prompt hash、cache key、seed source、storage driver。
+- [ ] `IMAGE_ASSET_MANIFEST` 包含 asset id、purpose、required、plan_status、`ui_style_preset`、style prompt base、full prompt、negative prompt、aspect ratio、generation timing、prompt hash、cache key、seed source、storage driver。
+- [ ] 背景图 prompt 与 `UI_STYLE_PRESET` 匹配，不把未选择夜间观测站的产品生成成黑色科技背景。
 - [ ] `IMAGE_ASSET_RUNTIME_STATE` 维护 generation_status、cache_status、cached_blob_ref、loaded、decoded、ready 和 error。
 - [ ] IndexedDB 缓存记录包含 Blob、cache_key、asset_id、prompt_hash、manifest version、时间戳、状态和错误。
 - [ ] 必需背景图 `ready = true` 前不得进入标题页。
@@ -1269,7 +1368,9 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 ### 视觉验收
 
 - [ ] 背景图铺满视口，遮罩不遮挡前景。
-- [ ] UI 气质符合沉浸酷炫地理观测站。
+- [ ] UI 气质符合已选择的 `UI_STYLE_PRESET`；默认应呈现明亮专业地图册 / 地形沙盘气质，而不是强制黑色系。
+- [ ] 至少保留 `atlas-light`、`field-expedition`、`satellite-gis`、`earth-science-museum`、`night-observatory` 五套风格预设说明或 token。
+- [ ] 黑色 / 深蓝科技风只在 `night-observatory` 被选择时作为主导风格。
 - [ ] 标题有主题化字体效果，不是普通 h1。
 - [ ] 面板、按钮、图例、参数控件有清晰层级和状态。
 - [ ] 粒子不遮挡内容、不拦截点击。
@@ -1291,6 +1392,7 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 - [ ] JSON 语法合法。
 - [ ] 所有 ID 引用一致。
 - [ ] `source_ref`、章节、知识点、题目、成就、可视化之间关系完整。
+- [ ] `visual_style.json` 记录已选择的 `UI_STYLE_PRESET`、可用预设、surface tokens 和章节主题色。
 - [ ] localStorage 只保存轻量进度。
 - [ ] IndexedDB 保存图片 Blob。
 - [ ] object URL 不长期存储。

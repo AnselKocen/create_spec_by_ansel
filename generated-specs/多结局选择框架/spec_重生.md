@@ -6,16 +6,16 @@
 |------|-----|
 | 产品名称 | {{GAME_NAME}} |
 | 来源素材 | {{BOOK_NAME}} |
-| 输出模式 | fixed-content |
+| 设计粒度 | 可填充玩法框架 |
 | 产品类型 | 分支叙事选择游戏 / 多结局文字冒险 |
 | 核心主题 | 由随附内容文件提取后确定，不在本 spec 中预设固定题材 |
 | 目标体验 | 玩家通过选择、失败、回看线索和重试，逐步理解内容规则并抵达好结局 |
 | 交互方式 | 阅读推进、检查线索、做出选择、触发结局、查看结局档案、从关键节点重试 |
 | 内容规模 | 建议 4-7 个章节 / 阶段；至少 5 个结局，推荐 5-8 个结局 |
 | 结局结构 | 多个坏结局 + 1 个好结局 + 可选隐藏结局；坏结局必须反哺后续推理 |
-| 生图策略 | 封面图 + 结局图：固定生成 1 张真实 AI 封面图，并为每个结局生成 1 张真实 AI 结局图；不生成章节 CG、普通场景插图或 UI 贴图 |
+| 生图策略 | 封面图 + 结局图：固定需要 1 张真实 AI 封面图，并为每个结局需要 1 张真实 AI 结局图；默认使用 `first-run-cache`，首次打开先查 IndexedDB，cache hit 读取 Blob，cache miss 才生成缺失图片并写入 IndexedDB；不生成章节 CG、普通场景插图或 UI 贴图 |
 | 准确性模式 | 按内容类型决定：科学、历史、真实人物、医学、法律使用 strict；科普、历史改编、人物体验使用 semi-strict；虚构、恐怖、奇幻、人格测试使用 fantasy |
-| 运行形态 | 最终用户直接游玩一个已填充完成的产品；不得把内容读取、主题生成、生图或填充流程暴露为前端功能 |
+| 运行形态 | 最终用户直接游玩一个已填充完成的产品；不得把内容读取、主题生成、手动生图或填充流程暴露为前端功能。若 IndexedDB 缺少 required 图片，只允许出现主题化资产准备页，不允许出现上传、选模型、填 API key、换画风或点击生成工具 |
 
 本 spec 定义的是“可被不同 `skills/` 内容填充的多结局选择游戏结构”。它不是某一个固定题材游戏，不预设世界观、角色、地点、剧情或结局名称。构建阶段必须从随附内容文件中提取具体主题和内容，再把这些内容设计成分支、线索、变量、结局和视觉系统。
 
@@ -74,7 +74,7 @@
 - 不得只读文件名或标题。
 - 不得根据标题自行编造核心内容。
 - 不得把一个固定题材强行套到所有内容文件上。
-- 不得把读取内容文件、提取主题、生成章节或生成图片做成最终用户可见的前端功能。
+- 不得把读取内容文件、提取主题、生成章节或手动生成图片做成最终用户可见的前端工具功能；IndexedDB 缺少 required 图片时只允许展示资产准备状态，不允许让用户操作生图流程。
 
 ## 三、目标用户
 
@@ -189,7 +189,13 @@
 
 ## 六、封面图与结局图生图策略与资产契约
 
-本产品固定需要真实生图资产，但生图范围必须严格收窄：**固定生成 1 张封面图 + 每个结局 1 张结局图**。除封面标题页与结局页外，不生成章节 CG、普通场景插图、线索图、档案图、按钮图或 UI 贴图。
+本产品固定需要真实生图资产，但生图范围必须严格收窄：**固定需要 1 张封面图 + 每个结局 1 张结局图**。除封面标题页与结局页外，不生成章节 CG、普通场景插图、线索图、档案图、按钮图或 UI 贴图。
+
+`IMAGE_GENERATION_TIMING = first-run-cache`
+
+本 spec 不设置构建期预置图片例外。封面图和所有结局图均由最终 app 在首次启动时按需准备：打开产品后必须先读取 `IMAGE_ASSET_MANIFEST` 并查询 IndexedDB；如果对应 `cache_key` 命中且 Blob 可正常 load/decode，则直接读取缓存，不得重新生图；如果缓存缺失、损坏或版本不匹配，才显示主题化资产准备页，只生成缺失 / 失效图片，并把生成结果以 Blob 写入 IndexedDB。
+
+只有以下情况才允许重新调用生图：IndexedDB 图片缓存缺失、Blob 损坏、prompt / 统一画风基底 / 资产清单版本 / spec 版本变化，或用户在设置中明确触发重新生成。除此之外，后续在同一浏览器 / 同一域名进入产品必须复用 IndexedDB 中已经缓存的真实图片 Blob。
 
 必须生成：
 - 封面图 1 张，用于封面标题页。
@@ -202,7 +208,8 @@
 #### 什么是生图
 
 - 调用生图模型或图像生成 API / 工具，输入提示词，获得一张真实的图像文件。
-- 图片数据必须在构建阶段获得，并能在最终 HTML 中直接显示。
+- 本 spec 中的图片必须由最终 app 首次启动时生成后写入 IndexedDB。
+- 用户正式进入依赖图片的体验时，页面引用的必须是真实生成图片 Blob 创建的 object URL 或等效缓存读取结果。
 
 #### 什么不是生图
 
@@ -215,15 +222,16 @@
 
 #### 生图流程
 
-生图是构建闸门，不是视觉建议。如果本项目声明需要生图，开发者必须先完成真实图片生成，再进入依赖该图片的页面实现与最终交付。不能把“待生图”“以后补图”“用 CSS 临时代替”当作完成状态。
+生图是资产闸门，不是视觉建议。如果本项目声明需要生图，开发者必须保证 required 图片在 `IMAGE_ASSET_RUNTIME_STATE.ready = true` 后，才能进入依赖该图片的正式页面。不能把“待生图”“以后补图”“用 CSS 临时代替”当作完成状态。
 
 1. 根据内容主题确定统一 `STYLE_PROMPT_BASE`。
 2. 为封面图编写完整提示词，完整提示词 = `STYLE_PROMPT_BASE` + 游戏核心主题、关键视觉符号、封面构图、情绪基调、光影和留白区域。
 3. 为每个结局编写完整提示词，完整提示词 = `STYLE_PROMPT_BASE` + 该结局的最终状态、核心情绪、关键角色 / 对象、象征物、光影和构图。
 4. 每张图的提示词至少 30 个英文词或等量详细描述。
-5. 实际调用可用的生图工具或 API。
-6. 将生成结果以本地静态资源、base64 或 data URL 形式绑定到数据中。
-7. 如果最终交付物是单个 HTML 文件，必须先生成真实图片，再转换为 base64 / data URL 内嵌。
+5. 在 `IMAGE_ASSET_MANIFEST` 中为每张图预先计算 `cache_key` 和 `prompt_hash`。
+6. 打开产品时先查询 IndexedDB：cache hit 不调用生图 API；cache miss、缓存损坏或版本变化时，只生成缺失 / 失效图片。
+7. 生图 API / 工具产出的图片数据必须转为 Blob 写入 IndexedDB，页面通过临时 object URL 或等效缓存读取结果引用。
+8. 所有 required 图片 ready 后才能进入封面标题页；如果有缺图，必须停留在主题化资产准备页并显示进度、当前资产用途、失败原因和重试入口。
 
 #### 封面图设计要求
 
@@ -249,29 +257,94 @@
 | `id` | 图片唯一 ID，如 `cover_image`、`ending_bad_01`、`ending_good`、`ending_hidden` |
 | `purpose` | 图片用途，固定为 `cover_image` 或 `ending_cg` |
 | `ending_id` | 仅当 `purpose = "ending_cg"` 时必填，对应的结局 ID，必须能关联到 `endings[].id`；封面图可省略或为 `null` |
+| `required` | 是否为进入核心体验前必须完成；封面图和结局图默认为 required |
 | `style_prompt_base` | 本项目统一画风基底 |
 | `prompt` | 该图片的完整正向提示词 |
 | `negative_prompt` | 明确排除项，如 text、logo、watermark、extra fingers、foreground clutter |
 | `aspect_ratio` | 目标比例，如 16:9、4:3、1:1 |
-| `output_path_or_data_url` | 真实生成结果的文件路径或 data URL |
-| `status` | 必须为 `generated` 才算通过 |
+| `generation_timing` | 固定为 `first-run-cache` |
+| `cache_key` | 稳定缓存键，建议 `game_id/asset_manifest_version/asset_id/prompt_hash`；不得包含用户、会话、浏览器或随机请求信息 |
+| `prompt_hash` | prompt + style prompt base + negative prompt + asset manifest version 的哈希 |
+| `seed_source` | 本 spec 默认 `{ "type": "none" }` |
+| `storage_driver` | 固定为 `indexeddb_blob` |
+| `plan_status` | 静态计划中只能是 `required` / `optional`；运行时生成状态由 `IMAGE_ASSET_RUNTIME_STATE` 决定 |
+| `initial_runtime_status` | `pending` / `seed_available` |
 
 生成闸门必须满足：
 
-- 所有必需图片的 `status` 都是 `generated`。
+- 所有 required 图片都有 `IMAGE_ASSET_RUNTIME_STATE.ready = true`。
 - 必须有且只有 1 张 `purpose = "cover_image"` 的封面图。
 - 每个结局都有且只有 1 张对应结局图。
 - 不存在章节 CG、普通场景插图、线索图、档案图、按钮图、UI 贴图等额外图片资产。
-- 每个 `output_path_or_data_url` 指向真实位图文件或真实位图数据。
+- 每个 required 图片都有稳定 `cache_key`，并且 IndexedDB 中对应 Blob 已写入、可读取、可加载、可解码。
 - 最终页面引用的是这些真实图片，而不是 CSS / SVG / Canvas / emoji / 文字占位。
 - 图片生成失败时必须重写提示词并重试；连续失败后停下来报告失败资产 ID、失败原因和已尝试提示词。
 
-如果没有可用生图能力，而本产品又需要真实图片，必须明确告诉用户：“我需要生图能力来生成这些图片，但当前没有可用的生图工具。请提供生图工具/API，或者告诉我如何调用。”在生图能力可用之前，不得交付声称完成的最终成品。
+first-run-cache 流程：
+
+```text
+打开 app
+→ 读取 IMAGE_ASSET_MANIFEST
+→ 为每张图片计算 / 校验 cache_key
+→ 查询 IndexedDB
+→ cache hit：读取 Blob → 创建临时 object URL → load/decode → IMAGE_ASSET_RUNTIME_STATE.ready = true
+→ cache miss：显示资产准备页 → generation lock → 调用真实生图 → Blob 写入 IndexedDB → load/decode → ready = true
+→ 所有 required 图片 ready 后进入封面标题页和核心体验
+```
+
+### IMAGE_ASSET_RUNTIME_STATE
+
+运行时必须为每张 required 图片维护一条 `IMAGE_ASSET_RUNTIME_STATE`。每条至少包含：
+
+| 字段 | 说明 |
+|------|------|
+| `asset_id` | 对应 `IMAGE_ASSET_MANIFEST.assets[].id` |
+| `cache_key` | 与静态计划一致 |
+| `generation_status` | `pending` / `generating` / `generated` / `failed` |
+| `cache_status` | `not_checked` / `cache_hit` / `cache_miss` / `cached` / `cache_corrupt` |
+| `cached_blob_ref` | IndexedDB 中的 Blob 引用信息，不存 object URL |
+| `loaded` | 是否已被浏览器加载 |
+| `decoded` | 是否已完成解码，可立即绘制 |
+| `ready` | `generation_status = generated`、`cache_status = cached / cache_hit`、`loaded = true`、`decoded = true` 且安全状态通过时才为 `true` |
+| `error` | 失败原因，成功时为空 |
+
+### IndexedDB 缓存记录
+
+IndexedDB 缓存记录至少包含：
+
+| 字段 | 说明 |
+|------|------|
+| `cache_key` | 稳定缓存键 |
+| `asset_id` | 图片 ID |
+| `asset_manifest_version` | 资产清单版本 |
+| `prompt_hash` | 提示词哈希 |
+| `blob` | 图片 Blob |
+| `mime_type` | 如 `image/png` / `image/webp` |
+| `created_at` | 首次写入时间 |
+| `updated_at` | 最近更新时间 |
+| `status` | `cached` / `generating` / `failed` / `corrupt` |
+| `error` | 失败原因，成功时为空 |
+
+IndexedDB 缓存记录是判断当前浏览器是否已有图片的依据。内存变量、object URL 和 HTTP cache 只能作为会话级加载加速，不得作为长期缓存状态。object URL 只能在当前页面会话中使用，不得写入 localStorage。
+
+### 加载与存储（硬约束）
+
+| 约束 | 规则 |
+|---|---|
+| 外部依赖 | 禁外链 CDN；前端框架、字体、UI 装饰资源必须内嵌打包或走同源 / 本地 `assets/`。 |
+| 图片主存储 | AI 生成图片 Blob 一律写入 IndexedDB；禁止把图片只存在 localStorage、内存、Blob URL 或未持久化变量中。 |
+| IndexedDB | IndexedDB 是图片 Blob 与缓存 metadata 的主存储；启动时必须先查 IndexedDB，cache hit 不得调用生图 API。 |
+| localStorage | localStorage 只保存轻量进度、分支状态、结局档案和设置；禁止保存图片、base64、大 data URL、Blob 字符串、object URL 或图片生成结果。 |
+| 生成写入 | 生图 API / 工具产出的图片数据必须转为 Blob 写入 IndexedDB；写入完成后再执行 load/decode 和 ready 判定。 |
+| HTML 体积 | 禁止把生成后的大图以 base64 / data URL 形式塞进前端入口页面；页面显示时只使用 IndexedDB Blob 创建的临时 object URL 或等效缓存读取结果。 |
+
+如果当前实现环境没有可用生图工具，而本产品又需要真实图片，必须明确告诉用户：“我需要生图能力来生成这些图片，但当前没有可用的生图工具。请提供生图工具/API，或者告诉我如何调用。”在生图能力可用之前，不得交付声称完成的最终成品。
 
 ## 七、功能清单
 
 | 优先级 | 功能名称 | 解决什么问题 | 输入 | 输出 |
 |--------|----------|--------------|------|------|
+| P0 | 首启资产准备页 | required 图片必须 ready 后才能进入核心体验 | 打开 app | 检查 IndexedDB；cache hit 快速载入，cache miss 显示生成进度 |
 | P0 | 封面标题页入口 | 玩家需要第一眼进入主题并进入已完成的游戏 | 打开产品 / 点击开始 / 继续 | 显示 AI 封面图、主题标题和入口；点击后播放进入动效并进入开场章节或恢复存档 |
 | P0 | 进入动效 | 从封面进入正文需要有明确过渡和仪式感 | 点击开始 / 继续 | 封面图、标题和入口按主题动效退场，开场章节入场 |
 | P0 | 章节阅读推进 | 玩家需要理解当前处境、内容规则或事件冲突 | 点击继续 / 下一段 | 展示下一段内容或进入选择节点 |
@@ -296,7 +369,13 @@
 ### 核心路径
 
 ```text
-封面标题页（AI 封面图 + 开始 / 继续 / 档案）
+打开 app
+→ 读取 IMAGE_ASSET_MANIFEST
+→ 查询 IndexedDB
+→ cache hit：读取封面图和结局图 Blob，load/decode
+→ cache miss：显示资产准备页，生成缺失封面图 / 结局图并写入 IndexedDB
+→ 所有 required 图片 ready
+→ 封面标题页（AI 封面图 + 开始 / 继续 / 档案）
 → 点击开始 / 继续
 → 进入动效
 → 内容驱动的开场章节 / checkpoint
@@ -312,13 +391,15 @@
 
 ### 首次游玩路径
 
-1. 玩家打开封面标题页，看到真实 AI 生成封面图、主题化标题和开始入口。
-2. 玩家点击开始，系统播放进入动效后进入已完成的游戏。
-3. 开场章节建立主题、玩家身份、目标和第一个冲突。
-4. 玩家阅读场景，检查 0-3 个线索。
-5. 玩家做出选择，系统展示短期反馈。
-6. 玩家进入后续章节或触发第一个坏结局。
-7. 第一次坏结局后，系统解锁结局档案入口，并提示本次失败留下了可回看的线索。
+1. 玩家打开产品，前端先读取 `IMAGE_ASSET_MANIFEST` 并检查 IndexedDB。
+2. 如果 cache hit，系统读取 Blob、load/decode 并快速进入封面标题页；如果 cache miss，系统显示主题化资产准备页，只生成缺失图片并写入 IndexedDB。
+3. 所有 required 图片 ready 后，玩家看到真实 AI 生成封面图、主题化标题和开始入口。
+4. 玩家点击开始，系统播放进入动效后进入已完成的游戏。
+5. 开场章节建立主题、玩家身份、目标和第一个冲突。
+6. 玩家阅读场景，检查 0-3 个线索。
+7. 玩家做出选择，系统展示短期反馈。
+8. 玩家进入后续章节或触发第一个坏结局。
+9. 第一次坏结局后，系统解锁结局档案入口，并提示本次失败留下了可回看的线索。
 
 ### 重玩路径
 
@@ -340,6 +421,13 @@
 ### 页面结构
 
 ```text
+资产准备页
+├── 图片缓存检查状态
+├── 当前生成资产用途
+├── 进度条 / 已完成数量
+├── 错误原因与重试入口
+└── 全部 required 图片 ready 后进入封面标题页
+
 封面标题页
 ├── AI 封面图
 ├── 主题化标题 / 副标题
@@ -537,12 +625,39 @@ type ImageAssetManifestItem = {
   id: string;
   purpose: "cover_image" | "ending_cg";
   ending_id?: string;
+  required: boolean;
+  plan_status: "required" | "optional";
+  initial_runtime_status: "pending" | "seed_available";
   style_prompt_base: string;
   prompt: string;
   negative_prompt: string;
   aspect_ratio: string;
-  output_path_or_data_url: string;
-  status: "generated" | "placeholder" | "pending" | "css_fallback";
+  generation_timing: "first-run-cache";
+  cache_key: string;
+  prompt_hash: string;
+  seed_source: { type: "none" } | { type: "fixed"; value: string };
+  storage_driver: "indexeddb_blob";
+};
+
+type ImageAssetRuntimeState = {
+  asset_id: string;
+  cache_key: string;
+  generation_status: "pending" | "generating" | "generated" | "failed";
+  cache_status:
+    | "not_checked"
+    | "cache_hit"
+    | "cache_miss"
+    | "cached"
+    | "cache_corrupt";
+  cached_blob_ref?: {
+    db_name: string;
+    store_name: string;
+    cache_key: string;
+  };
+  loaded: boolean;
+  decoded: boolean;
+  ready: boolean;
+  error?: string;
 };
 ```
 
@@ -576,7 +691,7 @@ type PlayerSettings = {
 };
 ```
 
-存储方案：运行时进度使用 `localStorage`，键名建议为 `multiEndingGameProgress:${GAME_ID}`。构建 / 填充阶段数据应直接打包进最终产品，不要求最终用户输入或上传。
+存储方案：运行时进度使用 `localStorage`，键名建议为 `multiEndingGameProgress:${GAME_ID}`；图片 Blob 和缓存 metadata 使用 IndexedDB。构建 / 填充阶段数据应直接打包进最终产品，不要求最终用户输入或上传。localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 object URL。
 
 ## 十一、交互设计
 
@@ -646,7 +761,7 @@ type PlayerSettings = {
 
 ### 玩法边界约束
 
-读取内容文件、提取主题、设计章节、生成图片、填充数据、准确性检查和自检都属于构建阶段动作。最终用户界面中不得出现以下内容：
+读取内容文件、提取主题、设计章节、填充数据、准确性检查和自检都属于构建阶段动作。图片生成属于 first-run-cache 资产准备流程，只能由 IndexedDB cache miss 自动触发，不能作为最终用户可操作的生成工具。最终用户界面中不得出现以下内容：
 
 - 上传内容文件。
 - 粘贴文本生成游戏。
@@ -697,16 +812,16 @@ type PlayerSettings = {
 
 | 维度 | 要求 |
 |------|------|
-| 技术栈 | 单页 HTML / CSS / JavaScript，或等效前端实现；不得依赖服务器才能完成核心体验 |
-| 部署方式 | 可作为静态页面运行 |
-| 存储 | 使用 localStorage 保存进度、结局档案、设置和已读状态 |
-| 外部依赖 | 核心体验不得依赖网络；若生图已在构建阶段完成，最终页面只引用内嵌或本地资产 |
+| 技术栈 | 单页前端产品 + IndexedDB 图片缓存 + 安全可用的运行时生图能力；核心玩法数据可前端运行 |
+| 部署方式 | 单页产品；首次缺图时需要可调用真实生图工具/API，缓存完成后同一浏览器 / 同一域名复用 IndexedDB 图片 Blob |
+| 存储 | 使用 localStorage 保存轻量进度、结局档案、设置和已读状态；IndexedDB 保存图片 Blob 和缓存 metadata |
+| 外部依赖 | 禁外链 CDN；前端框架、字体、UI 装饰资源应内嵌打包或走同源 / 本地 `assets/` |
 | 响应式 | 必须适配手机、平板和桌面 |
 | 性能 | 初次加载后操作反馈应在 100ms 内出现；动画目标 30fps 以上 |
 | 可访问性 | 支持键盘操作、focus-visible、足够对比度、可调整字号、减少动态效果 |
-| 数据安全 | 不在前端暴露任何 API key、模型密钥或构建阶段工具配置 |
+| 数据安全 | 不在前端暴露任何 API key、模型密钥或构建阶段工具配置；运行时生图必须通过安全后端、本机模型或受控代理 |
 | 可维护性 | 游戏数据、章节、选项、结局、变量和资产清单应结构化，不写散乱硬编码 |
-| 离线能力 | 完成构建后的产品应能在无网络环境下体验完整核心流程 |
+| 离线能力 | 首次缺图时不可离线；同一浏览器 / 同一域名完成缓存后可读取 IndexedDB 复用 |
 
 ### 响应式布局要求
 
@@ -742,20 +857,20 @@ type PlayerSettings = {
    档案必须记录已解锁结局、失败线索、路线回顾和未解锁状态。不得直接给完整攻略。
 
 8. **执行封面图与结局图生图策略**  
-   先生成 1 张真实封面图，再为每个结局生成 1 张真实结局图，完成 `IMAGE_ASSET_MANIFEST` 后再实现封面标题页、结局页和结局档案；不得生成章节 CG、普通场景插图、线索图、档案图、按钮图或 UI 贴图。
+   生成 `IMAGE_ASSET_MANIFEST`，所有真实位图资产的 `generation_timing` 均为 `first-run-cache`，并计算固定 `cache_key` 和 `prompt_hash`。实现时必须先查询 IndexedDB：cache hit 直接读取 Blob、load/decode；cache miss 只生成缺失 / 失效封面图或结局图，并把生成结果以 Blob 写入 IndexedDB。不得生成章节 CG、普通场景插图、线索图、档案图、按钮图或 UI 贴图。
 
 9. **实现主题化 UI**  
    根据内容文件确定视觉风格，实现封面标题页、进入动效、主题化标题、按钮、档案、线索、结局卡、SVG 装饰和粒子层。
 
 10. **实现存档与重试**  
-   使用 localStorage 保存进度、结局、线索、已读文本、设置和关键节点。
+   使用 localStorage 保存轻量进度、结局、线索、已读文本、设置和关键节点；图片不得写入 localStorage。IndexedDB 负责图片 Blob 和缓存 metadata；cache hit 时不得调用生图工具/API。
 
 11. **执行自检**  
    按第十六章验收标准逐项检查。任何未达成项都不能标记为完成。
 
 ### 玩法开发边界
 
-构建阶段可以读取内容、提取主题、设计分支、生成图片和填充数据，但这些流程不得出现在最终用户界面。最终用户只看到已经完成的多结局游戏。
+构建阶段可以读取内容、提取主题、设计分支和填充数据；图片生成只允许出现在 first-run-cache 资产准备流程中，并且由 IndexedDB cache miss 自动触发。最终用户不得看到内容提取、主题生成、模型选择或手动生图工具，只能看到资产准备状态和已经完成的多结局游戏。
 
 ### 文案生成要求
 
@@ -776,6 +891,7 @@ type PlayerSettings = {
 - 结局档案可以查看已解锁结局、路线回顾和失败线索。
 - 玩家可以从关键节点重试，不必每次完整重看所有已读内容。
 - localStorage 能保存进度、结局档案、线索和设置。
+- 如果 IndexedDB 已有对应 `cache_key` 的可用图片 Blob，刷新页面或再次打开时不得重新调用生图 API。
 
 ### 随附内容文件验收
 
@@ -788,11 +904,16 @@ type PlayerSettings = {
 ### 生图验收
 
 - 必须存在 `IMAGE_ASSET_MANIFEST`。
-- `IMAGE_ASSET_MANIFEST` 中封面图和每个结局图资产的 `status` 必须是 `generated`。
+- `IMAGE_GENERATION_TIMING` 明确为 `first-run-cache`。
+- `IMAGE_ASSET_MANIFEST` 中封面图和每个结局图资产都有 `cache_key`、`prompt_hash`、`seed_source` 和 `storage_driver = indexeddb_blob`。
 - 必须有且只有 1 张 `purpose = "cover_image"` 的封面图。
 - 每个结局必须有且只有 1 张结局图，且 `ending_id` 能对应到 `endings[].id`。
 - 不存在章节 CG、普通场景插图、线索图、档案图、按钮图、UI 贴图等额外图片资产。
-- 每个 `output_path_or_data_url` 必须指向真实位图文件或真实位图数据。
+- IndexedDB 缓存记录包含 `asset_id`、`asset_manifest_version`、`cache_key`、`prompt_hash`、`blob`、`mime_type`、`status`、`created_at`、`updated_at` 和 `error`。
+- cache hit 时只读取 IndexedDB Blob 并完成 load/decode，不调用生图 API。
+- cache miss、缓存损坏或版本变化时，只生成缺失 / 失效图片，生成结果必须以 Blob 写入 IndexedDB。
+- 所有 required 图片都有 `IMAGE_ASSET_RUNTIME_STATE.ready = true` 后，才允许进入封面标题页和结局图展示页。
+- 不得把生成后的大图以 base64 / data URL 形式塞进前端入口页面。
 - 所有图片必须使用统一 `STYLE_PROMPT_BASE`。
 - 图片失败时必须停止并报告，不得用占位图冒充完成。
 
@@ -825,6 +946,8 @@ type PlayerSettings = {
 - 每个 `ending.imageAssetId` 必须能对应到 `IMAGE_ASSET_MANIFEST` 中该结局的 `ending_cg` 资产。
 - 每个关键内容对象有 `sourceRefs` 或等效来源追踪。
 - localStorage 数据结构稳定，刷新页面后能恢复。
+- localStorage 不保存图片、base64、大 data URL、Blob 字符串或 object URL。
+- IndexedDB 图片缓存记录完整，且是 first-run-cache 判断 cache hit / cache miss 的依据。
 - 清除存档功能不会破坏游戏原始数据。
 
 ### 响应式验收
@@ -843,9 +966,9 @@ type PlayerSettings = {
 - 错误选项必须对应真实误区、合理误判或主题内因果，不能随机胡编。
 - 好结局条件必须能由前文线索推理出来。
 
-### 输出模式验收
+### 产品形态验收
 
-- 产品概览中明确写有输出模式，且实现边界与该模式一致。
+- 产品概览中明确写有 `设计粒度 | 可填充玩法框架`，且实现边界与该产品形态一致。
 - 最终用户界面中不得出现上传内容、输入主题、点击生成、重新生成、换画风、模型设置、API key 等工具流程。
 - 读取内容文件、提取主题、生图和填充数据只存在于构建阶段、开发指引、核心约束和验收标准中。
 - 最终用户打开后直接玩、阅读、选择、解锁结局、查看档案和重试。

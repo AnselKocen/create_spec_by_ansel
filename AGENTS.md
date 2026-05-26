@@ -82,7 +82,7 @@ then:
    - How should the player mainly play, and what should be left for `skills` to fill?
    - Is the structure linear, free exploration, branching, loop-based, or simulation-based?
    - Does it require real AI-generated images? If yes, which parts need images: title/background, chapter art, characters, entries, cards, endings, UI textures, etc.?
-   - Image generation timing defaults to `first-run-cache`: generated on the app's first launch, cached locally, and reused on later launches. Ask whether any required images must be `build-time` exceptions, or whether a `hybrid` split is needed.
+   - Image generation timing defaults to `first-run-cache`: the app shows a themed asset preparation flow on first launch, checks IndexedDB first, reads cached Blobs on cache hit, generates only cache-miss images, stores image Blobs in IndexedDB, and reuses cached images on later launches without regenerating. Ask whether any required images must be `build-time` exceptions, or whether a `hybrid` split is needed.
    - If the product requires high-precision SVG / Canvas / interactive simulation, which objects must be finely drawn, which processes need particles or continuous animation, and should the final spec include physics/chemistry-level drawing guidance?
    - Which accuracy mode should apply: strict, semi-strict, or fantasy?
    - What visual/UI atmosphere is desired? If unclear, derive style dimensions from content and gameplay rather than choosing from a fixed menu.
@@ -130,7 +130,7 @@ Use these as reference patterns, not as a closed product-type menu:
 
 Every final spec must include an image-generation strategy section. If the product requires any real bitmap image asset, the section must include strong constraints:
 
-- Image generation is an asset gate, not an optional visual enhancement. If a product requires any real bitmap asset, default to `first-run-cache`: first app launch shows a themed asset preparation page, generates only missing images, stores them in IndexedDB, and later launches reuse cached images without regenerating.
+- Image generation is an asset gate, not an optional visual enhancement. If a product requires any real bitmap asset, default to `first-run-cache`: first app launch checks IndexedDB before generating; cache hit reads the cached Blob, loads/decodes it, and must not call the image API; cache miss shows a themed asset preparation page, generates only missing images, stores image Blobs in IndexedDB, then enters the core experience after required images are ready. Later launches in the same browser/origin reuse cached images without regenerating.
 - CSS gradients are not image generation.
 - SVG paths are not image generation.
 - Canvas drawings are not image generation.
@@ -139,11 +139,13 @@ Every final spec must include an image-generation strategy section. If the produ
 - A real image generation model/tool/API must be called.
 - Each generated asset needs a detailed prompt.
 - All images in one project need a shared style prompt base.
-- The final spec must require a static `IMAGE_ASSET_MANIFEST` with asset id, purpose, required flag, plan status, style prompt base, full prompt, negative prompt, aspect ratio, generation timing, prompt hash, cache key, seed source, and storage driver.
+- The final spec must require a static `IMAGE_ASSET_MANIFEST` with asset id, purpose, required flag, plan status, initial runtime status, style prompt base, full prompt, negative prompt, aspect ratio, generation timing, cache key, prompt hash, seed source, storage driver, and safety requirements when applicable.
 - The final spec must require runtime `IMAGE_ASSET_RUNTIME_STATE` records with generation status, cache status, cached Blob reference, loaded/decoded flags, ready flag, and errors.
+- The final spec must require IndexedDB cache records containing cache key, asset id, asset manifest version, prompt hash, Blob, MIME type, timestamps, status, and error state.
 - The final spec must state which parts use real image generation and declare `IMAGE_GENERATION_TIMING`; default to `first-run-cache`, using `build-time` or `hybrid` only for explicit exceptions.
-- For `first-run-cache` or the first-run branch of `hybrid`, the final app must include a themed first-run asset preparation page, check IndexedDB first, generate only cache-miss images, store image Blobs in IndexedDB, and reuse cached images on later launches without calling the image API.
-- If final delivery is a single HTML file and timing is `build-time`, generated images must be embedded as base64/data URLs after real image generation and may be used as `seed_source` for IndexedDB on first launch.
+- For `first-run-cache` or the first-run branch of `hybrid`, the final app must include a themed first-run asset preparation page, check IndexedDB first, generate only cache-miss images, store image Blobs in IndexedDB, load/decode images before setting `ready = true`, and reuse cached images on later launches without calling the image API.
+- The final spec must include loading and storage hard constraints: image Blob data is stored in IndexedDB; localStorage stores only lightweight progress/status/version data; localStorage must never store images, base64, large data URLs, Blob strings, object URLs, or generated image results.
+- If final delivery is a single HTML file and timing is `build-time`, generated images must be embedded as base64/data URLs or local assets only after real image generation and may be used as `seed_source` for IndexedDB on first launch.
 - If image generation is unavailable or required assets cannot be generated, the implementer must stop and tell the user instead of faking it or delivering placeholders.
 
 If the product explicitly requires no real bitmap image assets, keep the image-generation strategy section and state that no generated bitmap assets are required for this spec. Do not add fake image placeholders.

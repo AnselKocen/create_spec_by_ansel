@@ -16,10 +16,12 @@
 | 交互方式 | 鼠标点击（阅读推进 + 选择 + 解密交互） |
 | 核心主题 | {{CORE_THEME}} |
 | 目标体验 | {{CORE_FEELING}} |
+| 生图时机 | first-run-cache |
+| 图片存储 | IndexedDB Blob；localStorage 只保存轻量进度 |
 
 <!--
 ⚠️ 以下约束仅供填写模板时参考，生成的最终文档中不要包含本注释块。
-实现能力约束：本工具由 AI 编码助手（Claude Code）全程生成代码实现，输出为单个 HTML 文件，内嵌 CSS + JS，零外部依赖。所有数据存储于 localStorage。
+实现能力约束：本工具由 AI 编码助手（Claude Code）全程生成代码实现，输出为单页 HTML 产品，内嵌 CSS + JS，零外部依赖。运行时进度存储于 localStorage，真实图片 Blob 和图片缓存 metadata 存储于 IndexedDB。
 -->
 
 ### ⚠️ 核心设计理念
@@ -126,11 +128,12 @@
 
 ### 背景系统
 
-> 背景必须由开发者在构建时根据故事氛围，自行编写提示词并调用生图模型生成。
+> 背景图必须作为 `IMAGE_ASSET_MANIFEST` 中的 required 资产纳入 `first-run-cache` 流程。最终 app 首次打开时先查 IndexedDB；cache hit 读取 Blob 并解码，cache miss 才调用真实生图工具/API 生成并写入 IndexedDB。
 
 **背景生成要求**：
 - 根据故事的核心场景，编写背景图的生图提示词
-- 调用生图模型生成一张阴暗压抑的氛围背景图
+- 背景图的 `asset_id` 建议为 `title_background`
+- 仅当 IndexedDB 中没有对应 `cache_key` 的可用 Blob，或缓存损坏 / prompt 版本变化时，才调用生图模型生成一张阴暗压抑的氛围背景图
 - 背景图仅用于标题页（首页），其他页面不使用
 - 背景图作为最底层图层（z-index 最低），整体偏暗，所有 UI 元素（标题、按钮等）浮在其上方，确保不被遮挡
 
@@ -280,8 +283,9 @@
 | P0 | 结局 | 通关后给玩家一个故事结尾 | 最终章完成 | 结局 CG + 结局文字 |
 | P0 | 章节过渡 | 恐怖递进需要节奏感                  | 自动触发 | 暗色过渡 + 章标题 |
 | P0 | 恐怖 UI 氛围 | 视觉必须强化恐怖感                  | 全程 | 重影/渗血/脉动/抖动等 CSS 效果 |
-| P0 | AI 生成 CG 插图 | 关键场景必须有画面，必须是调用ai用提示词生成的画面 | 构建时生成 | 每章 1-2 张 CG + 结局 1 张 CG |
-| P0 | AI 生成背景图 | 需要与故事匹配的氛围背景               | 构建时生成 | 1 张阴暗氛围背景图 |
+| P0 | 首启资产准备页 | required 图片必须 ready 后才能进入核心体验 | 打开 app | 检查 IndexedDB；cache miss 时显示生成进度 |
+| P0 | AI 生成 CG 插图 | 关键场景必须有画面，必须是调用 AI 用提示词生成的真实图片 | 首次启动缺图时生成 | 每章 1-2 张 CG + 结局 1 张 CG，写入 IndexedDB Blob |
+| P0 | AI 生成背景图 | 需要与故事匹配的氛围背景               | 首次启动缺图时生成 | 1 张阴暗氛围背景图，写入 IndexedDB Blob |
 | P1 | 存档续玩 | 中途离开后可继续                   | 点击继续 | 从上次进度恢复 |
 | P1 | 章节主页 | 玩家需要看到整体进度                 | 进入游戏 / 完成章节后返回 | 章节列表（已解锁/未解锁）+ 进度 |
 
@@ -292,13 +296,16 @@
 ### 核心路径
 
 ```
-标题页 → 章节主页 → 选择章节 → 章节过渡（黑屏+标题）→ [叙事段落 → 选择节点] × 2-3 次 → 章末解密小游戏 → 通关 → 返回章节主页（下一章解锁）→ ... → 最终章解密通关 → 结局 CG + 结局文字
+打开 app → 读取 IMAGE_ASSET_MANIFEST → 检查 IndexedDB → cache hit 快速载入 / cache miss 显示资产准备页并生成缺失图片 → required 图片 ready → 标题页 → 章节主页 → 选择章节 → 章节过渡（黑屏+标题）→ [叙事段落 → 选择节点] × 2-3 次 → 章末解密小游戏 → 通关 → 返回章节主页（下一章解锁）→ ... → 最终章解密通关 → 结局 CG + 结局文字
 ```
 
 ### 功能流转关系
 
 | 源功能 | 流向 | 目标功能 | 流转方式 |
 |--------|------|---------|---------|
+| 打开 app | → | 图片缓存检查 | 读取 `IMAGE_ASSET_MANIFEST` 并查询 IndexedDB |
+| 图片缓存检查 | → | 标题页 | cache hit：读取 Blob、load/decode、全部 required 图片 ready |
+| 图片缓存检查 | → | 资产准备页 | cache miss：只生成缺失图片，写入 IndexedDB 后再进入标题页 |
 | 标题页 | → | 恐怖警告弹窗 | 点击"开始"（首次） |
 | 标题页 | → | 章节主页 | 点击"继续"（有存档时跳过警告） |
 | 恐怖警告弹窗 | → | 章节主页 | 点击"继续" |
@@ -351,6 +358,7 @@
 
 | 界面 | 核心内容 | 交互方式 |
 |------|---------|---------|
+| 资产准备页 | required 图片缓存状态、生成进度、当前图片用途、失败重试 | 自动检查 / 重试 |
 | 标题页 | 游戏名称（恐怖字体效果）+ 生成的背景图 + 开始/继续按钮 | 点击 |
 | 章节主页 | 章节列表（已完成/当前/未解锁）+ 进度 | 点击章节 |
 | 叙事界面 | 暗色背景 + 居中文字区域 + 底部点击继续提示 | 点击推进 |
@@ -367,10 +375,12 @@
 
 | 维度 | 选择 |
 |------|------|
-| 存储方式 | localStorage |
+| 存储方式 | localStorage + IndexedDB |
 | 多端同步 | 否 |
-| 数据上限 | localStorage 5MB |
+| 数据上限 | localStorage 只保存轻量 JSON；图片 Blob 使用 IndexedDB |
 | 导入导出 | 不支持 |
+
+localStorage 只能保存章节进度、已完成状态、设置、警告确认状态等轻量数据，不得保存图片、base64、大 data URL、Blob 字符串或 object URL。所有 AI 生成背景图、章节 CG 和结局 CG 必须以 Blob 写入 IndexedDB，并通过运行时 `IMAGE_ASSET_RUNTIME_STATE` 判断是否 ready。
 
 ### 数据关系
 
@@ -382,6 +392,8 @@
 | chapter | 一对一 | puzzle | 每章末尾 1 个解密小游戏 |
 | choice_node | 一对二 | option | 每个选择恰好 2 个选项 |
 | ending | 一对一 | cg | 结局 1 张 CG |
+| IMAGE_ASSET_MANIFEST | 一对多 | image_asset | 背景图、章节 CG、结局 CG 的静态资产计划 |
+| IMAGE_ASSET_RUNTIME_STATE | 一对一 | image_asset | 运行时缓存、加载、解码和 ready 状态 |
 
 ---
 
@@ -423,33 +435,106 @@
 
 > 以下是**不可更改的规则**，开发时必须遵守。
 
-### ⚠️⚠️⚠️ CG 插图生成规则（最高优先级）
+### ⚠️⚠️⚠️ CG 插图生成与缓存规则（最高优先级）
 
 > **这是本项目最重要的约束，违反即判定为未完成。**
 >
 > **CG 插图必须由 AI 生图模型生成，绝对禁止用 CSS / SVG / Canvas / emoji / 文字描述替代。**
 
+`IMAGE_GENERATION_TIMING = first-run-cache`
+
+本产品不设置构建期预置图片例外。标题背景图、每章关键场景 CG、结局 CG 都必须在最终 app 首次启动时按需生成并写入 IndexedDB。用户刷新或下次打开时，如果 `cache_key` 命中且 Blob 可正常 load/decode，只读取 IndexedDB 缓存，不再调用生图工具/API。
+
+只有以下情况才允许重新调用生图：图片缓存缺失、缓存损坏、prompt / 统一画风基底 / 资产清单版本 / spec 版本变化，或用户在设置中明确触发重新生成。除此之外，后续进入产品必须复用 IndexedDB 中已经缓存的真实图片 Blob。
+
 **什么是"生图"：**
 - ✅ 调用生图模型（如图像生成 API / 工具），输入提示词，获得一张真实的图像文件
+- ✅ 本 spec 中的图片由最终 app 首次启动时生成后写入本机 IndexedDB 缓存
+- ✅ 用户正式进入依赖图片的体验时，页面引用的必须是真实生成图片 Blob 生成的 object URL 或等效缓存读取结果
 - ❌ 用 CSS 渐变、box-shadow、border-radius 画出来的图形 — **这不是生图**
 - ❌ 用 SVG path 手动描绘的图形 — **这不是生图**
 - ❌ 用 Canvas 代码绘制的图形 — **这不是生图**
 - ❌ 用 emoji 或 Unicode 符号拼凑 — **这不是生图**
 - ❌ 用纯文字描述"这里应该有一张图" — **这不是生图**
 
-**生图流程（构建时强制执行）：**
+**first-run-cache 固定流程：**
 
-1. **为每张 CG 编写详细的生图提示词**：
+```text
+打开 app
+→ 读取 IMAGE_ASSET_MANIFEST
+→ 为每张 required 图片计算 / 校验 cache_key
+→ 查询 IndexedDB
+→ cache hit：读取 Blob → 创建临时 object URL → load/decode → IMAGE_ASSET_RUNTIME_STATE.ready = true
+→ cache miss：显示资产准备页 → generation lock → 调用真实生图工具/API → Blob 写入 IndexedDB → load/decode → ready = true
+→ 所有 required 图片 ready
+→ 进入标题页和核心体验
+```
+
+资产准备页必须主题化，显示已完成数量 / 总数量、当前图片用途、失败原因和重试入口，不能是空白 loading 页。cache hit 时只能显示短暂"正在载入图片 / 正在打开故事"的轻量状态，不显示完整生成进度，不误导用户以为正在重新生图。
+
+**生图提示词要求：**
+
+1. **为每张 required 图片编写详细的生图提示词**：
    - 以 CG 风格提示词基底为前缀
    - 追加该场景的具体描述（场景、氛围、关键元素、光影）
    - 提示词必须足够详细，至少 30 词
-2. **调用生图模型生成图片**：
-   - 必须实际调用生图工具/API，获得图像数据
-   - 如果当前环境有可用的生图工具，必须使用
-   - 如果没有可用的生图工具，必须**停下来告知用户**，请求用户提供生图能力，**不可以用 CSS 画一个替代品然后继续**
-3. **将图片内嵌到 HTML**：
-   - 以 base64 编码嵌入 `<img>` 标签的 src 中
-   - 或以 data URL 形式嵌入 CSS background-image 中
+2. **所有图片共享统一画风基底**：
+   - `STYLE_PROMPT_BASE` 由恐怖子类型、核心场景、媒介、光影、材质和构图共同决定
+   - 完整 prompt = `STYLE_PROMPT_BASE` + 单张图片的主体、场景、动作、情绪、光影、用途说明
+3. **提示词必须进入 `IMAGE_ASSET_MANIFEST`**：
+   - 不得只在开发过程临时保存
+   - 每张图必须有 `prompt_hash` 和稳定 `cache_key`
+
+**IMAGE_ASSET_MANIFEST 要求：**
+
+开发者在写核心页面前必须先输出并核对 `IMAGE_ASSET_MANIFEST`。每张 required 图片至少包含：
+
+| 字段 | 说明 |
+|------|------|
+| `id` | 图片唯一 ID，如 `title_background` / `chapter_01_cg_01` / `ending_cg` |
+| `purpose` | `title_background` / `chapter_cg` / `ending_cg` |
+| `required` | 是否为进入核心体验前必须完成；标题背景、章节 CG、结局 CG 默认为 required |
+| `plan_status` | 固定为 `required` / `optional`，不得表示已生成 |
+| `initial_runtime_status` | `pending` / `seed_available` |
+| `style_prompt_base` | 本项目统一画风基底 |
+| `prompt` | 该图片完整正向提示词 |
+| `negative_prompt` | 项目级短模板或简洁排除项 |
+| `aspect_ratio` | 目标比例，如 16:9 / 4:3 |
+| `generation_timing` | 固定为 `first-run-cache` |
+| `cache_key` | 稳定缓存键，建议由 `game_id + asset_manifest_version + asset_id + prompt_hash` 组成 |
+| `prompt_hash` | prompt + style prompt base + negative prompt + asset manifest version 的哈希 |
+| `seed_source` | 默认 `{ "type": "none" }` |
+| `storage_driver` | 固定为 `indexeddb_blob` |
+
+静态 `IMAGE_ASSET_MANIFEST` 只描述资产计划，不表示当前浏览器里图片已经可用。不得在静态计划里用 `status = generated` / `cached` 放行体验；`placeholder`、`css_fallback`、`svg_fallback` 均不通过验收。
+
+**IMAGE_ASSET_RUNTIME_STATE 要求：**
+
+运行时必须为每张 required 图片维护一条状态记录：
+
+| 字段 | 说明 |
+|------|------|
+| `asset_id` | 对应 `IMAGE_ASSET_MANIFEST.assets[].id` |
+| `cache_key` | 与静态计划一致 |
+| `generation_status` | `pending` / `generating` / `generated` / `failed` |
+| `cache_status` | `not_checked` / `cache_hit` / `cache_miss` / `cached` / `cache_corrupt` |
+| `cached_blob_ref` | IndexedDB 中的 Blob 引用信息，不存 object URL |
+| `loaded` | 是否已被浏览器加载 |
+| `decoded` | 是否已完成解码 |
+| `ready` | 生成状态、缓存状态、加载、解码和安全状态均通过后才为 `true` |
+| `error` | 失败原因，成功时为空 |
+
+进入标题页和核心体验前，每个 required 图片都必须有 `IMAGE_ASSET_RUNTIME_STATE.ready = true`。
+
+**IndexedDB 缓存要求：**
+
+- 图片 Blob 必须优先存入 IndexedDB。
+- localStorage 只保存少量 metadata、版本号、用户进度和完成状态，不存图片、base64、大 data URL、Blob 字符串或 object URL。
+- 页面显示时可以用 `URL.createObjectURL(blob)` 创建临时 object URL，但 object URL 只能用于当前会话，不能当作长期存储。
+- cache hit 时不得调用生图工具/API；只能读取 IndexedDB Blob、创建临时 object URL、load/decode，并更新运行时状态。
+- cache miss、缓存损坏或版本变化时，只生成缺失 / 失效图片，生成后必须写入 IndexedDB，再执行 load/decode。
+- 必须使用生成锁，避免刷新、双击或多个标签页同时触发同一图片重复生图；优先使用 `navigator.locks`，不支持时用 IndexedDB 中的 `generation_lock` 记录实现。
+- required 图片多次生成失败时，停留在资产准备页或错误页，说明失败资产 ID、用途、失败原因和已尝试 prompt。
 
 **CG 数量要求**：
 - 每章至少 1 张场景 CG（关键恐怖场景）
@@ -460,7 +545,7 @@
 **如果无法生图怎么办**：
 - **不可以**静默地用 CSS 画一个"替代品"然后当作完成了
 - **必须**停下来，明确告诉用户："我需要生图能力来生成 CG 插图，但当前没有可用的生图工具。请提供生图工具/API，或者告诉我如何调用。"
-- 在生图能力可用之前，可以先完成其他所有部分，但 CG 位置必须留空占位，标注"待生图"
+- 在生图能力可用之前，不得交付声称完成的最终成品；required 图片不得被标记为 ready
 
 ### 叙事规则
 
@@ -588,8 +673,8 @@
           "text": "叙事文字",
           "has_cg": true,
           "cg": {
+            "image_asset_id": "chapter_01_cg_01",
             "prompt": "完整的生图提示词（风格基底 + 场景描述）",
-            "image": "base64 编码的图片数据（构建时填入）",
             "alt": "CG 内容描述（无障碍）"
           }
         }
@@ -614,11 +699,38 @@
     "title": "结局标题",
     "text": "结局文字（100-200 字）",
     "cg": {
+      "image_asset_id": "ending_cg",
       "prompt": "结局 CG 的完整生图提示词",
-      "image": "base64 编码的图片数据（构建时填入）",
       "alt": "CG 内容描述"
     }
   }
+}
+```
+
+#### image_assets.json
+
+```json
+{
+  "asset_manifest_version": "v1",
+  "image_generation_timing": "first-run-cache",
+  "assets": [
+    {
+      "id": "title_background",
+      "purpose": "title_background",
+      "required": true,
+      "plan_status": "required",
+      "initial_runtime_status": "pending",
+      "style_prompt_base": "统一恐怖 CG 画风基底",
+      "prompt": "标题背景图完整提示词",
+      "negative_prompt": "text, logo, watermark, low quality",
+      "aspect_ratio": "16:9",
+      "generation_timing": "first-run-cache",
+      "cache_key": "{{GAME_ID}}:v1:title_background:{{PROMPT_HASH}}",
+      "prompt_hash": "{{PROMPT_HASH}}",
+      "seed_source": { "type": "none" },
+      "storage_driver": "indexeddb_blob"
+    }
+  ]
 }
 ```
 
@@ -673,13 +785,13 @@
 
 | 维度 | 选择 |
 |------|------|
-| 技术栈 | 纯前端单文件（HTML + CSS + JS） |
-| 部署方式 | 静态文件直接打开 |
-| 离线可用 | 是（所有 CG 内嵌） |
+| 技术栈 | 单页 HTML + CSS + JS + IndexedDB 图片缓存 + 安全可用的运行时生图能力 |
+| 部署方式 | 单页产品；首次缺图时需要可调用真实生图工具/API |
+| 离线可用 | 首次缺图时不可离线；同一浏览器 / 同一域名完成缓存后可读取 IndexedDB 复用 |
 | 浏览器兼容 | 仅现代浏览器 |
 | 外部依赖 | 零依赖（字体可用 CDN，有 fallback） |
-| 性能要求 | 首屏加载 < 3s（含内嵌 CG），CSS 动效流畅 |
-| CG 存储 | base64 内嵌（**必须是 AI 生成的真实图片，不是 CSS 绘制**） |
+| 性能要求 | cache hit 首屏快速进入；cache miss 显示资产准备页和生成进度；CSS 动效流畅 |
+| CG 存储 | IndexedDB Blob（**必须是 AI 生成的真实图片，不是 CSS 绘制**） |
 
 ---
 
@@ -693,18 +805,19 @@
 4. 设计每章的选择节点（纯叙事，不计分）
 5. 为每章设计不同类型的解密小游戏（类型不可重复）
 6. 设计 1 个固定结局
-7. 确定 CG 风格提示词基底
-7. ⚠️ 为每张 CG 编写详细提示词，调用生图模型生成 CG 图片：
-   - 必须调用真实的生图工具/API
-   - 必须获得真实的图片数据（base64）
-   - 如果没有可用的生图工具，必须停下来告知用户，不可以用 CSS 替代
-8. 为背景图编写提示词，调用生图模型生成
+7. 确定 CG 风格提示词基底，并生成 `IMAGE_ASSET_MANIFEST`
+8. 为标题背景图、每章 CG、结局 CG 编写详细 prompt、negative prompt、prompt_hash 和 cache_key
+9. 实现首次启动资产准备页、IndexedDB Blob 缓存、生成锁、失败重试和 ready 闸门：
+   - cache hit 只读取 IndexedDB Blob、load/decode，不调用生图
+   - cache miss 才调用真实生图工具/API，生成后写入 IndexedDB
+   - 如果没有可用的生图能力，必须停下来告知用户，不可以用 CSS 替代
 10. 实现 UI 框架（阴森风格 + 恐怖 CSS 特效）
 11. 实现叙事系统 + 选择系统
 12. 逐章实现解密小游戏（CSS/SVG/Canvas/JS 实现）
 13. 实现章节主页 + 结局页
-14. 遵守「反套路约束」和「核心机制约束」中的所有规则
-15. 完成后执行全量自检（对照验收标准）
+14. 写入 localStorage 进度，不把图片、Blob、base64 或 object URL 存进 localStorage
+15. 遵守「反套路约束」和「核心机制约束」中的所有规则
+16. 完成后执行全量自检（对照验收标准）
 ```
 
 ---
@@ -735,11 +848,17 @@
 - [ ] 每个结局有 1 张 CG — 是 AI 生图模型生成的真实图片
 - [ ] 背景图 — 是 AI 生图模型生成的真实图片
 - [ ] 所有 CG 风格统一（使用同一套提示词基底）
-- [ ] CG 以 base64 内嵌，打开 HTML 可直接看到图片
+- [ ] `IMAGE_GENERATION_TIMING` 明确为 `first-run-cache`
+- [ ] 存在静态 `IMAGE_ASSET_MANIFEST`，每张图包含 `cache_key`、`prompt_hash`、`seed_source` 和 `storage_driver = indexeddb_blob`
+- [ ] 存在运行时 `IMAGE_ASSET_RUNTIME_STATE`，required 图片在用户进入核心体验前全部 `ready = true`
+- [ ] 图片生成后以 Blob 写入 IndexedDB；页面引用真实位图 Blob 生成的 object URL 或等效缓存读取结果
+- [ ] cache hit 时只读取 IndexedDB 缓存，不调用生图工具/API
+- [ ] cache miss 时只生成缺失图片，并在写入 IndexedDB 后执行 load/decode
+- [ ] 存在生成锁，刷新、双击或多标签页不得并发重复调用生图
 - [ ] 没有用 CSS 渐变/阴影/滤镜"画"出来的假图冒充 CG
 - [ ] 没有用 SVG path 描绘的图形冒充 CG
 - [ ] 没有用 emoji/Unicode 符号拼凑冒充 CG
-- [ ] 没有留空或写"待生图"的占位符
+- [ ] 没有留空或写"待生图"的占位符被标记为完成
 
 ### 叙事验收
 
@@ -769,6 +888,9 @@
 
 - [ ] 所有 ID 引用一致
 - [ ] 游戏状态刷新后保留（localStorage）
+- [ ] localStorage 只保存轻量进度、设置和完成状态
+- [ ] localStorage 不保存图片、base64、大 data URL、Blob 字符串或 object URL
+- [ ] IndexedDB 图片缓存记录包含 asset_id、asset_manifest_version、cache_key、prompt_hash、blob、mime_type、status、created_at、updated_at、error
 - [ ] JSON 语法合法，字符串内引号用中文引号「」
 
 ### 交互验证
@@ -780,7 +902,7 @@
 
 ### 视觉验收
 
-- [ ] 背景图已由 AI 生图模型生成并内嵌
+- [ ] 背景图已由 AI 生图模型生成，写入 IndexedDB，并通过 Blob/object URL 显示
 - [ ] 背景图上方有半透明暗色遮罩
 - [ ] 整体色调极暗，符合恐怖氛围
 - [ ] 恐怖 CSS 特效正常（重影/渗血/脉动/抖动）

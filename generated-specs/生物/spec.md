@@ -6,7 +6,6 @@
 |------|-----|
 | 产品名称 | {{GAME_NAME}} |
 | 来源素材 | {{BOOK_NAME}} |
-| 输出模式 | fixed-content |
 | 设计粒度 | 可填充玩法框架 |
 | 玩法结构 | 层级缩放生命系统模拟器 + 参数实验 + 多题型诊断反馈 |
 | 产品类型 | 生物 SVG/Canvas 参数模拟学习游戏 |
@@ -17,6 +16,7 @@
 | 内容规模 | 5-7 章；每章 3-4 个知识点；总题量 20-25 题；每章 3 个成就 |
 | 准确性模式 | strict |
 | 生图范围 | 标题页 / 全局背景图需要真实位图生图；核心生命结构图、机制图、遗传图、器官系统图和生态网络必须用 SVG/Canvas/HTML 实现 |
+| UI 风格策略 | 默认 `bio-atlas-light` 明亮生物图谱；可按内容选择 `microscope-fluorescence`、`botanical-field`、`medical-clinical`、`genetics-notebook`、`ecosystem-diorama` 等预设 |
 | IMAGE_GENERATION_TIMING | first-run-cache |
 | 运行与存储 | 纯前端单文件；进度使用 localStorage；背景图片 Blob 使用 IndexedDB 缓存 |
 
@@ -42,9 +42,9 @@
 
 用户应能在不同尺度之间理解“结构如何产生功能”“变量如何影响过程”“局部机制如何改变整体结果”。
 
-### 固定输出模式说明
+### 产品形态说明
 
-本 spec 是 `fixed-content` 成品框架。构建阶段会读取随附 `skills/内容文件`，提取具体生物知识、结构图谱、实验变量、曲线数据、遗传材料、生态关系、题目依据和视觉主题，填入本 spec 定义的数据结构。最终用户打开的是已经完成的生物互动学习游戏，不需要上传文件、输入内容或操作生成器。
+本 spec 描述的是已完成内容填充的生物互动学习游戏。构建阶段会读取随附 `skills/内容文件`，提取具体生物知识、结构图谱、实验变量、曲线数据、遗传材料、生态关系、题目依据和视觉主题，填入本 spec 定义的数据结构。最终用户打开的是已经完成的生物互动学习游戏，不需要上传文件、输入内容或操作生成器。
 
 ## 二、涉及的 SKILL / 内容文件清单
 
@@ -130,24 +130,41 @@
 
 ### 整体气质
 
-视觉方向为：**沉浸式生命科学实验室 + 显微荧光 + 精密解剖图谱 + 生态数据舱**。
+视觉方向为：**可变生命科学视觉系统：明亮生物图谱为默认，按生命尺度和内容主题切换多套 UI 风格，并始终保留清晰的生物语义色彩**。
 
-视觉不锁死为单一蓝绿实验室风，而是根据内容文件和章节尺度自适应：
+用户打开页面时，应首先感到这是一个可操作、可判读、颜色丰富但秩序清楚的生命系统学习工作台，而不是单一深色蓝绿实验室。前景始终是可操作的结构图、机制路径、实验曲线、遗传图谱、生态网络和动态粒子；背景通过真实生图获得，并根据 `UI_STYLE_PRESET` 匹配不同风格。
 
-- 分子 / 细胞：显微荧光、染色切片、半透明膜结构、粒子运动。
-- 植物生理：叶绿体、光照、水分运输、维管束、清新自然色。
-- 人体系统：医学图谱、器官剖面、血流/气体交换、稳态仪表。
-- 神经 / 免疫：电信号、突触、病原体、免疫细胞、警戒反馈。
-- 遗传：清晰谱系图、染色体、基因位点、概率格。
-- 生态：自然能量流、食物网、种群曲线、物质循环。
+默认风格为 `bio-atlas-light`：明亮生物图谱 + 结构机制工作台 + 多彩生命语义图层。深色显微荧光或实验室风格仅作为特定章节预设，不得作为唯一默认。
+
+### UI 风格预设
+
+最终实现必须在构建 / 填充阶段选择一个初始 `UI_STYLE_PRESET`，并可选地在设置中允许最终用户切换。无论使用哪种风格，生物结构、机制变量、实验曲线、遗传概率和生态关系的颜色编码、图例、单位和可读性优先级都高于装饰风格。
+
+| 预设 ID | 风格名称 | 适合内容 | 背景 / 表面 | 面板和控件 | 氛围动效 |
+|---------|----------|----------|-------------|------------|----------|
+| `bio-atlas-light` | 明亮生物图谱 + 结构机制工作台 | 通用生物、课堂学习、综合复习、结构识别 | 暖白、浅灰图谱纸、淡青、浅薄荷绿 | 白色 / 浅灰半透明面板、细线分隔、清晰图例 | 轻微显微粒子、结构图层淡入、曲线绘制 |
+| `microscope-fluorescence` | 显微荧光暗场 | 分子、细胞、膜运输、神经信号、免疫识别 | 深靛蓝、紫黑、荧光青绿、低亮背景 | 深色半透明面板、微光边缘、荧光焦点提示 | 显微粒子漂移、膜波纹、脉冲信号 |
+| `botanical-field` | 植物 / 野外观察台 | 植物生理、生态调查、光合作用、蒸腾 | 叶绿、土壤褐、暖白纸面、自然光 | 标本标签、观察记录卡、自然色按钮 | 光斑、叶脉流动、水分粒子、风动纹理 |
+| `medical-clinical` | 医学白底图谱 + 稳态仪表 | 人体系统、循环呼吸、内分泌、免疫、诊断题 | 医学白、浅蓝灰、淡红蓝、洁净表面 | 临床图谱面板、紧凑数值仪表、清晰状态标签 | 血流粒子、心率脉冲、负反馈曲线 |
+| `genetics-notebook` | 遗传实验记录本 + 数据网格 | 遗传推算、家系图、DNA 表达、实验设计 | 米白纸面、淡紫、浅蓝、石墨灰网格 | 方格纸、谱系卡、概率条和表格控件 | Punnett 方格填充、比例条增长、DNA 位点高亮 |
+| `ecosystem-diorama` | 生态展箱 + 自然能量流 | 食物网、种群曲线、物质循环、生态系统 | 草地绿、天空蓝、水域蓝、土壤褐、暖白 | 地景式面板、节点图例、曲线小窗 | 能量粒子沿食物网流动、种群曲线延迟响应 |
+
+### 风格选择规则
+
+- 默认选择 `bio-atlas-light`，除非内容文件明确更适合显微暗场、野外生态、医学临床、遗传数据或生态展箱。
+- 分子 / 细胞、膜运输、神经和免疫章节可优先 `microscope-fluorescence`，但要保证标注和图例可读。
+- 植物生理、生态调查、自然环境案例优先 `botanical-field` 或 `ecosystem-diorama`。
+- 人体系统、稳态调节、疾病/异常诊断优先 `medical-clinical`。
+- 遗传推算、家系图、DNA 表达和实验设计优先 `genetics-notebook`。
+- 同一产品可以使用一个全局预设，也可以让章节继承全局预设并按章节主题色轻微变化；不得每页随机换风格导致体验割裂。
 
 ### 视觉层级
 
 | 层级 | 内容 | 实现要求 |
 |------|------|----------|
-| 背景层 | AI 生成的生命科学实验室 / 生物系统背景图 | 固定铺满视口，不能遮挡 UI |
-| 遮罩层 | 中性灰或低饱和深色遮罩 | 提升前景可读性，不污染结构编码色 |
-| 氛围层 | 显微粒子、DNA 螺旋线、脉冲信号、生态能量粒子 | `pointer-events: none`，不得影响操作 |
+| 背景层 | AI 生成的生命科学背景图，风格由 `UI_STYLE_PRESET` 决定 | 固定铺满视口，不能遮挡 UI |
+| 调和层 | 中性亮/暗遮罩、轻纸纹或实验台表面层 | 提升前景可读性，不污染结构编码色 |
+| 氛围层 | 显微粒子、DNA 螺旋线、脉冲信号、叶脉流、水分粒子、生态能量粒子 | `pointer-events: none`，不得影响操作 |
 | 主 UI 层 | 章节、题目、参数面板、图例、按钮 | 高对比度、清晰分组、响应式 |
 | 核心可视化层 | SVG 结构图、器官系统、遗传图谱、生态网络、Canvas 粒子 | 判读优先，所有编码有生物含义 |
 | 反馈层 | 正误反馈、路径高亮、异常诊断、成就 toast | 不遮挡关键结构，出现后可关闭或自动消退 |
@@ -155,10 +172,11 @@
 ### 背景系统
 
 - 背景图必须由真实生图模型或图像生成 API/工具生成。
-- 背景图方向由内容文件主题自适应，默认可使用生命科学实验室、全息生物系统、显微荧光、医学图谱、生态数据屏。
+- 背景图方向必须来自当前 `UI_STYLE_PRESET` 的画风基底，例如明亮生物图谱、显微荧光暗场、植物野外观察台、医学白底图谱、遗传记录本或生态展箱；不得固定写死为深色生命科学实验室。
 - 背景图固定铺满视口：`background-size: cover; background-position: center; background-attachment: fixed`。
-- 背景图上方叠加遮罩，建议 `rgba(0,0,0,0.34)` 左右，内容密集页可加深，标题页可略减淡。
-- 遮罩不得带强色相，避免污染细胞器、血氧、神经信号、遗传概率和生态节点颜色。
+- 背景图上方叠加中性调和层：明亮预设可用 `rgba(255,255,255,0.24)`、`rgba(248,250,246,0.18)` 或轻纸纹；深色显微预设可用 `rgba(0,0,0,0.28-0.42)`。
+- 调和层不得带强色相，避免污染细胞器、血氧、神经信号、遗传概率和生态节点颜色。
+- 核心页面如果背景过于活跃，必须增加浅色或深色工作台底板，保证结构、题目和图例可读。
 
 ### 标题设计
 
@@ -169,7 +187,13 @@
 
 ### UI 面板风格
 
-- 面板采用深色或低饱和半透明底、毛玻璃、细线描边和轻微发光边缘，类似生物数据舱和实验仪器面板。
+- 面板风格由 `UI_STYLE_PRESET` 决定，不默认深色蓝绿实验室。
+- `bio-atlas-light` 使用浅色图谱纸面板、细灰线、淡青/薄荷强调和清晰阴影。
+- `microscope-fluorescence` 使用深色半透明面板、微光边缘和荧光焦点提示。
+- `botanical-field` 使用暖白观察记录卡、标本标签、自然色按钮和轻纸纹。
+- `medical-clinical` 使用洁净白/浅蓝灰面板、紧凑数值仪表和临床状态标签。
+- `genetics-notebook` 使用方格纸、表格控件、谱系卡和概率条。
+- `ecosystem-diorama` 使用自然地景式面板、节点图例和曲线小窗。
 - 页面区块不做大面积浮夸卡片堆叠；核心是结构/机制工作台。
 - 图例面板、参数面板、题目面板和反馈面板必须视觉区分。
 - 卡片圆角 4-8px，保持精密仪器感；儿童科普版本可在内容文件要求下略柔和。
@@ -178,16 +202,16 @@
 
 ### 配色规范
 
-本产品需要多样的生物语义色彩系统，但丰富性主要用于结构、机制、曲线、生态网络和实验变量；UI 底色保持克制，避免变成花哨的通用科幻页面。
+本产品需要多样的生物语义色彩系统。丰富性主要用于结构、机制、曲线、生态网络和实验变量；UI 底色可以明亮或深色，但必须保持克制，避免变成花哨的通用科幻页面。
 
 #### UI 基础色
 
 | 用途 | 方向 | 说明 |
 |------|------|------|
-| 背景/表面 | 深墨蓝、炭灰、深青黑、低饱和紫黑、暗橄榄黑 | 与背景图融合，给结构图留出对比 |
-| 面板分隔 | 低透明冷灰、低饱和青灰、暗紫灰 | 用于边框、分割线、次级容器 |
-| 文字/标注 | 冷白、浅灰、浅青、浅暖白 | 对比度 ≥ 4.5:1；标注不得被彩色结构吞掉 |
-| 交互强调 | 荧光青、琥珀、生命绿、珊瑚红、显微紫 | 用于按钮、当前章节、可交互提示，不作为随意装饰 |
+| 背景/表面 | 暖白、浅灰图谱纸、淡青、浅薄荷绿、医学白、米白方格纸、自然绿褐；深色显微预设可用深靛蓝、紫黑、炭灰 | 与背景图融合，给结构图留出对比；深色不是默认 |
+| 面板分隔 | 低透明冷灰、纸面灰、淡青灰、浅蓝灰、暗紫灰 | 用于边框、分割线、次级容器 |
+| 文字/标注 | 深墨绿、炭灰、医学蓝黑、冷白、浅暖白 | 对比度 ≥ 4.5:1；标注不得被彩色结构吞掉 |
+| 交互强调 | 荧光青、琥珀、生命绿、珊瑚红、显微紫、医学蓝、生态绿 | 用于按钮、当前章节、可交互提示，不作为随意装饰 |
 | 正确/错误 | 清晰绿色 / 温和红色 | 反馈专用，不与生物编码冲突 |
 
 #### 生物专题色板
@@ -431,17 +455,34 @@ IMAGE_GENERATION_TIMING = first-run-cache
 
 ### 背景图统一画风基底
 
-背景图画风由内容文件主题自适应。默认基底如下：
+背景图画风由 `UI_STYLE_PRESET` 和内容文件主题共同决定。默认预设为 `bio-atlas-light`，实现时必须从下列基底中选择，不得固定使用单一深色实验室 prompt。
 
 ```text
-STYLE_PROMPT_BASE =
-immersive life science laboratory, holographic biological systems, microscopic fluorescence, anatomical atlas panels, ecological network data screens, precise scientific visualization mood, cinematic lighting, high detail, wide background composition, no people, no readable text
+STYLE_PROMPT_BASE_BY_PRESET =
+
+bio-atlas-light:
+bright biology atlas learning workbench, clean anatomical and cellular diagrams as abstract non-readable panels, soft daylight, pale paper surface, subtle microscope glass textures, precise scientific visualization mood, rich but calm biological color accents, high detail, wide background composition, no people, no readable text
+
+microscope-fluorescence:
+dark-field microscopy inspired biology workspace, glowing cellular structures, subtle fluorescent particles, translucent membrane forms, precise life science visualization mood, deep indigo and violet background with cyan-green highlights, high detail, wide background composition, no people, no readable text
+
+botanical-field:
+modern botanical field study table, plant physiology diagrams as abstract non-readable sheets, leaf samples, soft natural daylight, green and earth-tone surfaces, water movement and vein pattern atmosphere, scientific but warm, high detail, wide background composition, no people, no readable text
+
+medical-clinical:
+clean medical biology atlas workspace, anatomical panels as abstract non-readable displays, clinical white and pale blue surfaces, subtle vital sign curves, precise organ system visualization mood, calm professional lighting, high detail, wide background composition, no people, no readable text
+
+genetics-notebook:
+genetics lab notebook workspace, Punnett grid and pedigree inspired abstract non-readable diagrams, DNA strand visual motifs, pale paper, graphite grid lines, soft violet and blue accents, precise data visualization mood, high detail, wide background composition, no people, no readable text
+
+ecosystem-diorama:
+ecology learning diorama workspace, miniature ecosystem model, abstract food web and population curve panels with no readable text, natural greens, water blue, soil brown, warm daylight, energy flow atmosphere, high detail, wide background composition, no people, no readable text
 ```
 
 项目级 negative prompt：
 
 ```text
-people, readable text, watermark, logo, distorted anatomy, grotesque body horror, inaccurate medical labels, blurry diagrams, low resolution, cartoonish clutter, overexposed, messy composition
+people, readable text, watermark, logo, distorted anatomy, grotesque body horror, inaccurate medical labels, blurry diagrams, low resolution, cartoonish clutter, overexposed, messy composition, one-note dark blue laboratory unless microscope-fluorescence is selected
 ```
 
 ### 静态资产计划：IMAGE_ASSET_MANIFEST
@@ -452,20 +493,22 @@ people, readable text, watermark, logo, distorted anatomy, grotesque body horror
 {
   "asset_manifest_version": "bio-bg-v1",
   "image_generation_timing": "first-run-cache",
-  "style_prompt_base": "immersive life science laboratory, holographic biological systems, microscopic fluorescence, anatomical atlas panels, ecological network data screens, precise scientific visualization mood, cinematic lighting, high detail, wide background composition, no people, no readable text",
+  "ui_style_preset": "{{UI_STYLE_PRESET}}",
+  "style_prompt_base": "{{SELECTED_STYLE_PROMPT_BASE_FROM_UI_STYLE_PRESET}}",
   "assets": [
     {
-      "id": "global_life_science_lab_bg",
+      "id": "global_biology_style_bg",
       "purpose": "标题页 / 全局背景图",
       "required": true,
       "plan_status": "required",
       "initial_runtime_status": "pending",
-      "style_prompt_base": "STYLE_PROMPT_BASE",
-      "prompt": "immersive life science laboratory, holographic biological systems floating as abstract non-readable panels, microscopic fluorescence glow, anatomical atlas panels, ecological network data screens, precise scientific visualization mood, cinematic deep lighting, high detail environmental concept art, wide background composition, no people, no readable text",
-      "negative_prompt": "people, readable text, watermark, logo, distorted anatomy, grotesque body horror, inaccurate medical labels, blurry diagrams, low resolution, cartoonish clutter, overexposed, messy composition",
+      "ui_style_preset": "{{UI_STYLE_PRESET}}",
+      "style_prompt_base": "{{SELECTED_STYLE_PROMPT_BASE_FROM_UI_STYLE_PRESET}}",
+      "prompt": "{{SELECTED_STYLE_PROMPT_BASE_FROM_UI_STYLE_PRESET}}, foreground contains abstract biological system visualization panels, cellular or organ or ecosystem motifs matched to the selected preset, clean open space for UI overlays, no readable text, high detail environmental concept art",
+      "negative_prompt": "people, readable text, watermark, logo, distorted anatomy, grotesque body horror, inaccurate medical labels, blurry diagrams, low resolution, cartoonish clutter, overexposed, messy composition, one-note dark blue laboratory unless microscope-fluorescence is selected",
       "aspect_ratio": "16:9",
       "generation_timing": "first-run-cache",
-      "cache_key": "{{PROJECT_ID}}/bio-bg-v1/global_life_science_lab_bg/{{PROMPT_HASH}}",
+      "cache_key": "{{PROJECT_ID}}/bio-bg-v1/{{UI_STYLE_PRESET}}/global_biology_style_bg/{{PROMPT_HASH}}",
       "prompt_hash": "{{PROMPT_HASH}}",
       "seed_source": { "type": "none" },
       "storage_driver": "indexeddb_blob",
@@ -484,13 +527,14 @@ people, readable text, watermark, logo, distorted anatomy, grotesque body horror
 | `required` | 是否为进入核心体验前必须完成 |
 | `plan_status` | 固定为 `required` / `optional`，不得表示已生成 |
 | `initial_runtime_status` | `pending` / `seed_available` |
+| `ui_style_preset` | 当前背景图绑定的 UI 风格预设 |
 | `style_prompt_base` | 项目统一画风基底 |
 | `prompt` | 每张图完整正向提示词 |
 | `negative_prompt` | 项目级简洁负向提示词 |
 | `aspect_ratio` | 目标比例 |
 | `generation_timing` | `first-run-cache` |
 | `cache_key` | 稳定缓存键 |
-| `prompt_hash` | prompt + style base + negative prompt + manifest version 的版本哈希 |
+| `prompt_hash` | prompt + style base + negative prompt + `ui_style_preset` + manifest version 的版本哈希 |
 | `seed_source` | `first-run-cache` 默认 `{ "type": "none" }` |
 | `storage_driver` | 固定 `indexeddb_blob` |
 
@@ -502,7 +546,7 @@ people, readable text, watermark, logo, distorted anatomy, grotesque body horror
 
 ```json
 {
-  "asset_id": "global_life_science_lab_bg",
+  "asset_id": "global_biology_style_bg",
   "cache_key": "{{CACHE_KEY}}",
   "generation_status": "pending",
   "cache_status": "not_checked",
@@ -533,7 +577,7 @@ people, readable text, watermark, logo, distorted anatomy, grotesque body horror
 ```json
 {
   "cache_key": "{{CACHE_KEY}}",
-  "asset_id": "global_life_science_lab_bg",
+  "asset_id": "global_biology_style_bg",
   "asset_manifest_version": "bio-bg-v1",
   "prompt_hash": "{{PROMPT_HASH}}",
   "blob": "{{IMAGE_BLOB}}",
@@ -556,9 +600,9 @@ people, readable text, watermark, logo, distorted anatomy, grotesque body horror
 
 当缓存缺失时，最终 app 必须显示主题化资产准备页：
 
-- 标题可用“正在准备生命科学实验室背景”。
+- 标题可用“正在准备生命科学视觉资产”或“正在准备 {{UI_STYLE_PRESET}} 背景”。
 - 显示已完成数量 / 总数量、当前资产用途、生成状态。
-- 背景可使用 CSS 深色底和 SVG DNA / 显微粒子临时氛围，但不得把它当作最终背景图。
+- 资产准备页的临时视觉应匹配当前 UI 风格：明亮预设使用浅色图谱纸、DNA 线稿或结构图层；显微荧光预设可使用深色底和 SVG DNA / 显微粒子临时氛围。不得把临时 CSS/SVG 视觉当作最终背景图。
 - 必需图片未 ready 前不得进入标题页或核心体验。
 - cache hit 时只显示短暂“正在载入视觉资产”，不得误导用户以为重新生图。
 
@@ -583,7 +627,7 @@ people, readable text, watermark, logo, distorted anatomy, grotesque body horror
 | P0 | 高精度 SVG 生物可视化 | 建立结构识别、机制理解和实验判读能力 | 内容文件填充的知识点与参数 | 结构图、机制路径、曲线、网络、标注 |
 | P0 | 参数实验探索 | 用户需要亲手改变生命变量 | 滑块、时间轴、图层开关、基因型选择、节点调节 | SVG/Canvas 实时响应、数值面板同步 |
 | P0 | 多题型诊断 | 生物学习需要结构识别、实验分析、遗传推算和机制诊断 | 选择、点选、拖拽、排序、匹配、推算 | 锁定答案、进入反馈演示 |
-| P0 | 动态反馈演示 | 正误都要回到生命机制本身解释 | 作答结果 | 正确机制或错误后果的可视化演示 |
+| P0 | 查看反馈 | 正误都要回到生命机制本身解释 | 作答结果 | 正确机制或错误后果的可视化演示 |
 | P0 | 章末总结 | 巩固本章核心结构、变量、机制和误区 | 自动触发 | 知识卡片、机制回顾、成就展示 |
 | P0 | 成就系统 | 用鼓励性成就替代冷冰冰分数 | 首次作答、探索行为 | toast、成就墙、章节成就 |
 | P0 | 存档续学 | 用户离开后继续 | 自动保存/继续学习 | localStorage 恢复进度 |
@@ -597,6 +641,7 @@ people, readable text, watermark, logo, distorted anatomy, grotesque body horror
 | P1 | 回放与慢放 | 复杂生命过程需要反复观察 | 播放/暂停/慢放 | 时间轴回放 |
 | P1 | 错题回看 | 用户需要复盘误区 | 点击错题/章节回看 | 错题场景和正确反馈 |
 | P1 | 隐藏标注挑战 | 提升结构识别训练强度 | 切换挑战模式 | 隐藏部分标签后作答 |
+| P1 | UI 风格预设切换 | 用户或教师可能需要明亮图谱、显微荧光、植物野外、医学白底、遗传数据或生态展箱等不同视觉气质 | 设置中选择预设 | 页面表面、背景、面板和氛围动效切换；生物编码色不变 |
 | P1 | 探索彩蛋 | 奖励好奇心 | 极端但合理参数组合 | 创意成就或额外解释 |
 
 ## 八、用户动线
@@ -745,6 +790,7 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 | `knowledge_point` | 一对少 | `question` | 每个知识点 1-2 道题 |
 | `question` | 一对多 | `answer_interaction` | 不同题型有不同交互数据 |
 | `chapter` | 一对多 | `achievement` | 每章 3 个成就 |
+| `visual_style_preset` | 一对多 | `chapter_theme_palette` | 全局 UI 风格可叠加章节主题色 |
 | `image_asset_manifest` | 一对多 | `image_asset_runtime_state` | 静态计划对应运行时状态 |
 
 ### meta.json
@@ -756,11 +802,52 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
   "game_title": "{{GAME_NAME}}",
   "game_subtitle": "{{GAME_SUBTITLE}}",
   "title_tagline": "{{TITLE_TAGLINE}}",
+  "ui_style_preset": "bio-atlas-light / microscope-fluorescence / botanical-field / medical-clinical / genetics-notebook / ecosystem-diorama",
+  "chapter_theme_palette": "{{CHAPTER_THEME_PALETTE}}",
   "difficulty": "基础/进阶/综合",
-  "output_mode": "fixed-content",
+  "product_delivery": "completed_learning_game",
   "accuracy_mode": "strict",
   "image_generation_timing": "first-run-cache",
   "closing_message": "{{CLOSING_MESSAGE}}"
+}
+```
+
+### visual_style.json
+
+```json
+{
+  "selected_ui_style_preset": "{{UI_STYLE_PRESET}}",
+  "available_presets": [
+    "bio-atlas-light",
+    "microscope-fluorescence",
+    "botanical-field",
+    "medical-clinical",
+    "genetics-notebook",
+    "ecosystem-diorama"
+  ],
+  "style_selection_reason": "{{WHY_THIS_PRESET_MATCHES_CONTENT}}",
+  "surface_tokens": {
+    "page_background": "{{PAGE_BACKGROUND_COLOR}}",
+    "panel_background": "{{PANEL_BACKGROUND_COLOR}}",
+    "panel_border": "{{PANEL_BORDER_COLOR}}",
+    "text_primary": "{{TEXT_PRIMARY_COLOR}}",
+    "text_secondary": "{{TEXT_SECONDARY_COLOR}}",
+    "interactive_accent": "{{INTERACTIVE_ACCENT_COLOR}}"
+  },
+  "chapter_theme_palettes": [
+    {
+      "chapter_id": "ch1",
+      "scale": "{{BIOLOGICAL_SCALE}}",
+      "theme": "{{CHAPTER_THEME}}",
+      "accent_colors": ["{{ACCENT_COLOR}}"],
+      "bio_semantic_palette_overrides": "{{ONLY_IF_BIOLOGICAL_MEANING_REQUIRES_IT}}"
+    }
+  ],
+  "constraints": [
+    "biological semantic colors override decorative UI colors",
+    "deep fluorescent dominance is allowed only when microscope-fluorescence is selected",
+    "all structure colors, curve colors, particles, arrows, and node sizes must be explained by legend or labels"
+  ]
 }
 ```
 
@@ -985,7 +1072,8 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
   "unlocked_achievements": [],
   "settings": {
     "reduced_motion": false,
-    "show_labels": true
+    "show_labels": true,
+    "ui_style_preset": "{{CURRENT_UI_STYLE_PRESET}}"
   }
 }
 ```
@@ -1041,9 +1129,8 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 
 ## 十二、核心机制约束
 
-### 输出模式约束
+### 产品形态约束
 
-- 本 spec 固定为 `fixed-content`。
 - 读取内容文件、提取知识、生成章节、编制题目、生成背景图资产计划属于构建或资产准备流程。
 - 最终用户体验从已完成产品入口开始，不能把上传文件、输入内容、生成产品作为最终用户主流程。
 - 背景图首次启动生成是视觉资产准备流程，不是用户可操作的生成器玩法。
@@ -1053,6 +1140,13 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 - 本 spec 是“可填充玩法框架”，不是单个写死的生物章节实例。
 - 具体章节名、知识点、结构图、实验变量、题目、图例、成就名和解析由 `skills/内容文件` 填充。
 - 本 spec 负责定义内容如何提取、映射、组织、交互、表现和验收。
+
+### UI 风格预设约束
+
+- 最终实现必须选择并记录 `UI_STYLE_PRESET`，默认使用 `bio-atlas-light`。
+- `UI_STYLE_PRESET` 只控制页面表面、背景图方向、面板质感、标题氛围和装饰动效；不得改变生物结构、机制变量、实验曲线、遗传概率或生态关系的含义。
+- 如果实现运行时风格切换，切换只影响 UI token、背景资产和装饰氛围；题目答案、结构图层、参数规则和机制反馈不得变化。
+- 深色显微荧光风只能作为 `microscope-fluorescence` 的明确选择，不得让所有风格都退化成同一套深蓝实验室界面。
 
 ### strict 准确性约束
 
@@ -1217,20 +1311,21 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 
 收到本 spec 后，下一步实现模型必须按以下顺序执行：
 
-1. 读取本 spec 全文，确认输出模式为 `fixed-content`。
+1. 读取本 spec 全文，确认最终用户体验是已完成内容填充的生物互动学习游戏。
 2. 读取所有 `skills/内容文件` 的完整正文，建立 `source_material.json`。
 3. 从内容文件中提取生命结构、功能关系、机制过程、生物规则、实验变量、数据、题目依据和可验证结论。
 4. 根据内容递进生成 5-7 章，每章 3-4 个知识点。
-5. 为每个知识点设计一个可复用的 SVG 或 SVG + Canvas 生命机制可视化场景。
-6. 为每个可视化定义图层、图例、参数、状态、题型和反馈演示。
-7. 先建立 `IMAGE_ASSET_MANIFEST`，为全局背景图写完整 prompt、negative prompt、cache key 和 prompt hash。
-8. 实现首次启动图片缓存流程：查 IndexedDB，cache miss 时调用真实生图能力，写入 Blob，cache hit 不调用生图。
-9. 实现标题页、章节主页、章节过渡、知识点四阶段闭环、章末总结和通关成就墙。
-10. 实现多题型：3 选 1、结构点选、拖拽标注、过程排序、机制匹配、曲线判读、遗传推算、生态网络预测、异常诊断。
-11. 实现 localStorage 进度与 IndexedDB 图片缓存，严格区分两者。
-12. 对每章执行 strict 准确性自检，修正结构、机制、实验、遗传、生态、单位和题目错误。
-13. 对 SVG/CSS 绘制指南执行专项自检，确认生物可视化原语、质感配方、动效模式、标注/图例、交互态、常见画错点均已落实。
-14. 对照验收标准全量自测。
+5. 根据内容文件、目标用户和章节尺度选择 `UI_STYLE_PRESET`，默认 `bio-atlas-light`；如选择 `microscope-fluorescence`，必须说明为何需要深色显微荧光氛围。
+6. 为每个知识点设计一个可复用的 SVG 或 SVG + Canvas 生命机制可视化场景。
+7. 为每个可视化定义图层、图例、参数、状态、题型和反馈演示。
+8. 先建立 `IMAGE_ASSET_MANIFEST`，按 `UI_STYLE_PRESET` 为全局背景图写完整 prompt、negative prompt、cache key 和 prompt hash。
+9. 实现首次启动图片缓存流程：查 IndexedDB，cache miss 时调用真实生图能力，写入 Blob，cache hit 不调用生图。
+10. 实现标题页、章节主页、章节过渡、知识点四阶段闭环、章末总结和通关成就墙。
+11. 实现多题型：3 选 1、结构点选、拖拽标注、过程排序、机制匹配、曲线判读、遗传推算、生态网络预测、异常诊断。
+12. 实现 localStorage 进度与 IndexedDB 图片缓存，严格区分两者。
+13. 对每章执行 strict 准确性自检，修正结构、机制、实验、遗传、生态、单位和题目错误。
+14. 对 SVG/CSS 绘制指南执行专项自检，确认生物可视化原语、质感配方、动效模式、标注/图例、交互态、常见画错点均已落实。
+15. 对照验收标准全量自测。
 
 ### 开发时禁止
 
@@ -1240,6 +1335,7 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 - 禁止在前端硬编码私密模型/API key。
 - 禁止用纯文字“正确/错误”代替反馈演示。
 - 禁止为了节省实现跳过探索阶段或多题型。
+- 禁止把所有 UI 风格都做成同一套深蓝 / 蓝绿生命科学实验室界面。
 
 ## 十六、验收标准
 
@@ -1272,7 +1368,8 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 
 - [ ] 背景图由真实生图模型/API/工具生成。
 - [ ] CSS 渐变、SVG、Canvas、emoji、文字占位没有被当作生图。
-- [ ] `IMAGE_ASSET_MANIFEST` 包含 asset id、purpose、required、plan_status、style prompt base、full prompt、negative prompt、aspect ratio、generation timing、prompt hash、cache key、seed source、storage driver。
+- [ ] `IMAGE_ASSET_MANIFEST` 包含 asset id、purpose、required、plan_status、`ui_style_preset`、style prompt base、full prompt、negative prompt、aspect ratio、generation timing、prompt hash、cache key、seed source、storage driver。
+- [ ] 背景图 prompt 与 `UI_STYLE_PRESET` 匹配，不把未选择显微荧光预设的产品生成成单一深蓝实验室背景。
 - [ ] `IMAGE_ASSET_RUNTIME_STATE` 维护 generation_status、cache_status、cached_blob_ref、loaded、decoded、ready 和 error。
 - [ ] IndexedDB 缓存记录包含 Blob、cache_key、asset_id、prompt_hash、manifest version、时间戳、状态和错误。
 - [ ] 必需背景图 `ready = true` 前不得进入标题页。
@@ -1307,7 +1404,9 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 ### 视觉验收
 
 - [ ] 背景图铺满视口，遮罩不遮挡前景。
-- [ ] UI 气质符合沉浸式生命科学实验室，且能根据内容主题自适应。
+- [ ] UI 气质符合已选择的 `UI_STYLE_PRESET`；默认应呈现明亮生物图谱 / 结构机制工作台气质，而不是强制深色实验室。
+- [ ] 至少保留 `bio-atlas-light`、`microscope-fluorescence`、`botanical-field`、`medical-clinical`、`genetics-notebook`、`ecosystem-diorama` 六套风格预设说明或 token。
+- [ ] 深色显微荧光风只在 `microscope-fluorescence` 被选择时作为主导风格。
 - [ ] 标题有主题化字体效果，不是普通 h1。
 - [ ] 面板、按钮、图例、参数控件有清晰层级和状态。
 - [ ] 粒子不遮挡内容、不拦截点击。
@@ -1329,6 +1428,7 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 - [ ] JSON 语法合法。
 - [ ] 所有 ID 引用一致。
 - [ ] `source_ref`、章节、知识点、题目、成就、可视化之间关系完整。
+- [ ] `visual_style.json` 记录已选择的 `UI_STYLE_PRESET`、可用预设、surface tokens 和章节主题色。
 - [ ] localStorage 只保存轻量进度。
 - [ ] IndexedDB 保存图片 Blob。
 - [ ] object URL 不长期存储。
@@ -1355,9 +1455,8 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 - [ ] 反馈解析严谨、温和、可验证。
 - [ ] 没有虚构核心生物知识、真实实验结论或遗传/生态规律。
 
-### 输出模式验收
+### 产品形态验收
 
-- [ ] 产品概览声明 `输出模式 = fixed-content`。
 - [ ] 最终用户动线从已完成产品开始。
 - [ ] 没有把上传文件、输入内容、生成产品写成最终用户主流程。
 - [ ] 内容提取和填充属于开发指引、内容文件契约和验收标准。
