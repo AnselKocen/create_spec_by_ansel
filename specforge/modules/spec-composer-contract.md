@@ -71,6 +71,8 @@
    - 随附内容文件限制：必须读取完整 `skills/` 或内容文件，必须写清内容文件如何映射进产品，并让核心内容可追溯到文件原文。
    - 生图限制：哪些部分生图、什么是生图、什么不是生图、必须提示词、统一画风基底、生图资产闸门、静态 `IMAGE_ASSET_MANIFEST`、运行时 `IMAGE_ASSET_RUNTIME_STATE`、IndexedDB 缓存记录、`IMAGE_GENERATION_TIMING`、无法生图必须停下。
    - 首次启动生图缓存：凡是需要真实位图资产，默认最终 spec 必须要求资产准备页、IndexedDB Blob 缓存、cache key / prompt hash / 版本失效、生成锁、失败重试、cache hit 不重新生图和缓存验收。只有用户明确选择纯 `build-time` 时，才可以不把资产准备页作为首屏流程，但仍要有静态资产清单和真实生图验收。
+   - 图片预生成 / 预加载闸门：所有 required 图片进入核心体验前必须完成 `generated + cached/cache_hit + loaded + decoded + ready`；核心体验阶段不得逐页生成、逐页请求或逐页等待 required 图片。
+   - 图片展示链路：图片必须以 Blob 写入 IndexedDB，再用 `URL.createObjectURL(blob)` 创建本次会话展示源；object URL 不能长期存储，刷新后必须重新从 IndexedDB Blob 创建。
    - UI 美化：标题不是普通 h1，按钮/卡片/面板必须主题化。
    - SVG/CSS 技巧：用 SVG 做装饰、图标、边框、进度，CSS 做状态和动效。
    - 高精度 SVG / CSS 可视化：如果用户要求高精度 SVG，或产品核心依赖 SVG/Canvas 互动模拟、参数探索、地图、图表、结构图、机制图，最终 spec 必须按 `specforge/modules/svg-css-visual-primitives.md` 写到绘制手册级别，包含可视化原语速查、SVG/CSS 质感配方、领域动效模式、标注与数据编码、交互态视觉暗示、常见画错点和专项验收。不能只写“高精度”“分层”“酷炫”。
@@ -85,6 +87,7 @@
    - 诸如“最高优先级”“必须实现”“不可更改”“不通过则判定未完成”“什么不是生图”等内容不能弱化。
    - 每份最终 spec 都必须保留“生图策略与资产契约”章节。如果本产品不需要真实位图资产，必须在该章节中明确写清“不需要真实生图资产”的范围；如果需要任何真实位图资产，必须完整插入生图契约。
    - 如果产品需要真实位图资产，默认必须把资产准备页写成进入核心体验前的视觉资产准备流程，不能把它写成普通生成器玩法。
+   - 如果产品需要真实位图资产，默认必须把“图片写入 IndexedDB Blob → 从 IndexedDB 读 Blob → 创建本次会话 object URL → load/decode → ready”写成唯一通过闸门的展示链路。
    - 如果用户选择需要生图，不能提供 CSS/SVG/Canvas 占位图作为替代方案，也不能把“待生图”标记为通过验收。
 
 11. **输出完整 Markdown**

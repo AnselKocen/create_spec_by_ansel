@@ -74,10 +74,12 @@
 - 如果不需要，写清“不需要真实生图资产”的范围，并说明核心视觉由 SVG/Canvas/CSS/HTML 实现。
 - 如果需要任何真实位图资产，必须包含完整生图契约：图片资产范围、什么是生图、什么不是生图、统一画风基底、每图 prompt、negative prompt、静态 `IMAGE_ASSET_MANIFEST`、运行时 `IMAGE_ASSET_RUNTIME_STATE`、IndexedDB 缓存记录、无法生图必须停下。
 - 必须声明 `IMAGE_GENERATION_TIMING`：`build-time` / `first-run-cache` / `hybrid`。
-- 默认使用 `first-run-cache`：最终 app 首次启动时显示主题化“正在生成图片 / 正在准备视觉资产”页面，生成缺失图片并写入 IndexedDB；之后刷新或再次打开直接读取缓存，不重新生图。
+- 默认使用 `first-run-cache`：最终 app 首次启动时显示主题化“正在生成图片 / 正在准备视觉资产”页面，生成缺失图片并写入 IndexedDB；之后刷新或再次打开直接读取 IndexedDB Blob、创建 object URL、加载并解码，不重新生图。
 - `build-time`：仅当用户明确要求或少量核心图必须打开即显示时使用；图片在实现 / 构建阶段生成并嵌入或打包，首次打开后仍可作为 `seed_source` 写入 IndexedDB，后续优先读缓存。
 - `hybrid`：核心图片构建期生成，次要或大量图片首次启动生成并缓存。
 - 首次启动缓存策略必须写清：资产准备页、IndexedDB Blob 存储、`cache_key` 规则、`prompt_hash` / 版本失效规则、生成锁、失败重试、cache hit 不调用生图 API、必需图片 `ready = true` 前不得进入核心体验。
+- 必须写清图片预生成与预加载闸门：所有 `required = true` 的图片在进入核心体验前必须完成 `generated + cached/cache_hit + loaded + decoded + ready`；核心体验阶段不得逐页生成、逐页请求或逐页等待 required 图片。
+- 必须写清图片展示链路：从 IndexedDB 读取 Blob，并用 `URL.createObjectURL(blob)` 创建本次会话 object URL 后展示；object URL 只用于当前会话，不能长期存储。
 
 ### 七、功能清单
 
@@ -93,7 +95,7 @@
 - 必须说明开始、推进、完成、回看/重试/存档等关键路径。
 - 已填充完成的产品：用户动线必须从已经完成的产品开始，例如“标题页 → 章节主页 → 内容体验 → 结局总结”，不能从“上传文件 / 输入内容 / 点击生成”开始。
 - 用户可操作的生成工具：用户动线可以从“输入内容 / 选择参数 / 生成 / 预览 / 导出”开始。
-- 如果产品需要真实位图资产，用户动线默认需要包含“打开 app → 检查图片缓存 → 资产准备页 → cache hit 快速载入 / cache miss 生成缺失图片 → 进入核心体验”。这属于资产准备流程，不改变核心玩法结构。
+- 如果产品需要真实位图资产，用户动线默认需要包含“打开 app → 检查图片缓存 → 资产准备页 → cache hit 读取 IndexedDB Blob 并创建 object URL / cache miss 生成缺失图片、转 Blob、写入 IndexedDB、加载解码 → required 图片全部 ready → 进入核心体验”。这属于资产准备流程，不改变核心玩法结构。
 
 ### 九、信息结构
 
@@ -109,6 +111,7 @@
 - 已填充完成的产品：必须区分“构建 / 填充阶段从内容文件提取出的产品数据”和“运行时用户进度数据”。前者用于生成完成品，后者用于 localStorage 等存档。
 - 用户可操作的生成工具：可以包含用户输入、生成任务、生成结果、版本历史、导出记录等运行时数据。
 - 如果产品需要真实位图资产，数据设计必须包含三层图片资产 Schema：静态 `IMAGE_ASSET_MANIFEST`（资产计划、prompt、`seed_source`、`cache_key`）、运行时 `IMAGE_ASSET_RUNTIME_STATE`（`generation_status`、`cache_status`、`cached_blob_ref`、`loaded`、`decoded`、`ready`）、IndexedDB 缓存记录（Blob、`cache_key`、`prompt_hash`、版本、时间戳、错误）。
+- `cached_blob_ref` 只能指向 IndexedDB Blob 记录，不能保存普通文件路径或 object URL。
 - localStorage 只能保存轻量进度、版本和状态，不得保存图片、base64、大 data URL、Blob 字符串或 object URL。
 
 ### 十一、交互设计
@@ -138,7 +141,7 @@
 ### 十五、开发指引
 
 - 写给下一步实现模型的执行步骤。
-- 必须包含：读取完整内容文件、执行生图策略、实现核心玩法、执行自检。
+- 必须包含：读取完整内容文件、执行生图策略、实现图片预生成 / 预加载闸门、实现核心玩法、执行自检。
 - 已填充完成的产品：开发指引中的读取内容、提取内容、填充数据是构建阶段动作，不应暴露成最终用户界面；若采用默认 `first-run-cache` 生图，资产准备页属于运行时视觉资产准备流程，不是用户可操作的生成器玩法。
 - 用户可操作的生成工具：开发指引必须说明工具运行时如何处理用户输入和生成结果，且不得在前端暴露 API key 或模型密钥。
 
@@ -147,7 +150,8 @@
 - 功能验收。
 - 随附内容文件验收。
 - 生图验收。
-- 首次启动图片缓存验收（所有需要真实位图资产的 spec 默认适用，除非用户明确选择纯 `build-time`）：首次缺图时显示资产准备页；图片生成后写入 IndexedDB；刷新或下次进入 cache hit 时只读取缓存且不调用生图 API；prompt 或版本变化时只重生成失效图片；运行时状态全部 ready 后才进入核心体验。
+- 首次启动图片缓存验收（所有需要真实位图资产的 spec 默认适用，除非用户明确选择纯 `build-time`）：首次缺图时显示资产准备页；图片生成后写入 IndexedDB；刷新或下次进入 cache hit 时只读取 IndexedDB Blob、创建 object URL、load/decode 且不调用生图 API；prompt 或版本变化时只重生成失效图片；required 图片运行时状态全部 ready 后才进入核心体验。
+- 图片展示链路验收：`<img>`、CSS 背景和 Canvas 绘制应使用 IndexedDB Blob 派生的 object URL，或构建期真实图片 seed 写入 IndexedDB 后的 Blob；object URL 不得长期存储。
 - 视觉验收。
 - 高精度 SVG/CSS 可视化验收（触发时必须适用）：检查是否有领域可视化原语速查、质感配方、标注/图例/单位、交互态反馈、参数连续动画和常见画错点自检。
 - 交互验收。

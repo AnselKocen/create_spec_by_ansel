@@ -21,11 +21,11 @@ IMAGE_GENERATION_TIMING = first-run-cache
 → 资产准备页
 → 检查 IMAGE_ASSET_MANIFEST
 → IndexedDB cache lookup
-→ cache hit：读取 Blob + load/decode
-→ cache miss：显示生成进度，调用真实生图工具/API，写入 IndexedDB
+→ cache hit：读取 IndexedDB Blob + 创建本次会话 object URL + load/decode
+→ cache miss：显示生成进度，调用真实生图工具/API，取得图片数据并转成 Blob，写入 IndexedDB，再创建 object URL + load/decode
 → 所有必需图片 ready
 → 进入核心体验
-→ 之后刷新 / 再打开只读缓存，不重新生图
+→ 之后刷新 / 再打开只读 IndexedDB Blob，不重新生图
 ```
 
 除非用户明确要求某些图片必须在构建期生成，或产品确实需要“首屏立即有图且不能等待”，否则不要默认选择 `build-time`。如果只有少数核心图需要构建期生成，其他图片仍应使用 `hybrid` 中的首启缓存分支。
@@ -41,7 +41,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
 
 - ✅ 调用生图模型或图像生成 API/工具，输入提示词，获得一张真实的图像文件。
 - ✅ 图片数据可以在构建期获得并嵌入，也可以在最终 app 首次启动时生成并写入本机缓存。
-- ✅ 用户正式进入依赖这些图片的游戏 / 产品体验时，页面引用的必须是真实生成图像或 IndexedDB 中缓存的真实图像 Blob。
+- ✅ 用户正式进入依赖这些图片的游戏 / 产品体验时，页面引用的必须是真实生成图像的 Blob 读取结果：优先从 IndexedDB 取出 Blob，再用 `URL.createObjectURL(blob)` 创建本次会话 object URL 后加载 / 解码。
 
 ## 什么不是“生图”
 
@@ -58,7 +58,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
 
 | 值 | 含义 | 适用场景 |
 |----|------|----------|
-| `first-run-cache` | 默认。app 首次启动时生成缺失图片，写入 IndexedDB，本机之后直接读取缓存 | 大多数需要真实图片的 spec |
+| `first-run-cache` | 默认。app 首次启动时生成缺失图片，转 Blob 写入 IndexedDB，本机之后读取 IndexedDB Blob、创建 object URL、load/decode | 大多数需要真实图片的 spec |
 | `build-time` | 构建 / 实现阶段生成并写入最终交付物 | 用户明确要求打开即有图、演示交付、少量固定核心图 |
 | `hybrid` | 部分核心图构建期生成，其他图片首次启动缓存 | 标题背景必须立即可见，但图鉴/章节/结局图可首启准备 |
 
@@ -85,9 +85,10 @@ IMAGE_GENERATION_TIMING = first-run-cache
    - cache hit 时不得调用生图工具/API；只有 cache miss、缓存损坏、版本变更，或用户明确重新生成时才允许调用。
 
 4. **绑定和持久化图片数据**
-   - 首次启动生图时，图片必须以 Blob 写入 IndexedDB，并在后续进入时直接读取缓存。
+   - 首次启动生图时，图片必须以 Blob 写入 IndexedDB，并在后续进入时从 IndexedDB 读取 Blob、创建 object URL、加载并解码。
    - localStorage 只保存轻量 metadata、版本号、阅读/游戏进度或完成状态，不得保存图片、base64、大 data URL、Blob 字符串或 object URL。
-   - 页面显示时可以用 `URL.createObjectURL(blob)` 创建临时 object URL，但 object URL 只能用于当前会话，不能当作长期存储。
+   - 页面显示时必须从 IndexedDB Blob 创建临时 object URL：`URL.createObjectURL(blob)`。object URL 只能用于当前会话，不能当作长期存储；页面卸载或图片替换时应 `URL.revokeObjectURL()`。
+   - 普通 HTTP cache、Blob URL、内存变量都不能作为判断“已有图片”的唯一依据；浏览器持久缓存以 IndexedDB Blob 记录为准。
    - 如果最终交付物要求单个 HTML 文件，仍必须先生成真实图片；如果选择 `build-time`，可把真实图片转换为 base64 / data URL 内嵌；如果选择 `first-run-cache`，则必须保证最终 app 有安全可用的运行时生图能力。
 
 ## 首次启动生图缓存流程
@@ -102,7 +103,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
 → 为每张必需图片计算 / 校验 cache_key
 → 查询 IndexedDB
 → cache hit：Blob → object URL → load/decode → IMAGE_ASSET_RUNTIME_STATE.ready = true
-→ cache miss：generation lock → 调用真实生图 → Blob 写入 IndexedDB → load/decode → ready = true
+→ cache miss：generation lock → 调用真实生图 → 取得图片数据并转 Blob → 写入 IndexedDB → object URL → load/decode → ready = true
 → 所有必需图片 ready
 → 进入核心体验
 ```
@@ -116,6 +117,13 @@ IMAGE_GENERATION_TIMING = first-run-cache
 - 必需图片完成前不进入依赖这些图片的核心体验。
 - 可选图片可以后台继续生成，但对应页面需要有清楚的等待状态。
 
+图片预生成与预加载闸门：
+
+- 进入核心体验前，所有 `required = true` 的图片必须完成 `generated + cached/cache_hit + loaded + decoded + ready`。
+- 核心阅读 / 游戏 / 学习阶段不得逐页生成 required 图片、不得翻到某页才请求 required 图片、不得让用户在核心流程中等待 required 图片加载。
+- 如果某张图片会在首屏、章节入口、核心页面或必经结局中展示，它必须被列为 required，不得用 optional 绕过准备闸门。
+- optional 图片可以不阻塞核心体验，但必须有明确运行时状态、失败原因和重试入口；不得用 CSS / SVG / Canvas 占位伪装成真实生图结果。
+
 缓存策略要求：
 
 - 必须优先使用 IndexedDB 存储图片 Blob 和 manifest metadata。
@@ -123,6 +131,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
 - 当 prompt、画风基底、资产清单版本或 spec 版本变化时，cache key 随之变化，只重新生成失效图片。
 - 必须使用生成锁，避免刷新、双击、多个标签页同时触发同一图片重复生图。优先使用 `navigator.locks`；不支持时，可用 IndexedDB 中的 `generation_lock` 记录实现。
 - 如果检测到同一 `cache_key` 正在生成，当前页面应等待缓存结果或显示“正在准备图片”，不得并发再次调用生图 API。
+- 刷新或再次打开时必须先做 IndexedDB cache lookup；若 Blob 命中且 prompt / manifest 版本一致，只允许执行 Blob 读取、object URL 创建、load/decode 快速校验，不得重新进入生图流程。
 
 失败处理要求：
 
@@ -197,6 +206,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
 - cache hit 时不得调用生图 API，只能读取 IndexedDB Blob、创建 object URL、load/decode。
 - cache miss 时只生成缺失图片，生成后必须写入 IndexedDB，再执行 load/decode。
 - 每个 `cached_blob_ref` 必须指向本机缓存中的真实图片 Blob。
+- 页面展示层使用从 IndexedDB Blob 创建的 object URL，或构建期真实图片 seed 写入 IndexedDB 后再读取出的 Blob。
 - 开发者必须确认最终页面引用的是这些真实图片，而不是 CSS/SVG/Canvas/emoji/文字占位。
 - 如果图片生成失败，必须重写提示词并重试；连续失败后停下来报告失败的资产 ID、失败原因、已尝试提示词，等待用户处理。
 - 在必需图片资产未通过闸门前，不得把最终实现标记为完成。
