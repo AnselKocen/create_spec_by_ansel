@@ -15,8 +15,8 @@
 - 不需要等待用户一次性提供全部信息；逐步收敛。
 - 问题要围绕“生成 spec 需要什么”，不要像无关问卷。
 - 先确认玩法结构，再写视觉和验收。
-- 生图至少必须问三个问题：哪些部分生图、是否有必须构建期预置的例外、哪些图片是进入核心体验前必须 ready 的 required 资产。默认生图时机为 `first-run-cache`：首次打开显示资产准备页，生成缺失图片并写入 IndexedDB，之后刷新或再次打开直接读 IndexedDB Blob 缓存。
-- 只要需要真实位图资产，玩法方案和最终 spec 都必须默认包含图片预生成 / 预加载闸门：required 图片进入核心体验前必须全部生成 / 缓存 / 加载 / 解码完成。
+- 生图至少必须问三个问题：哪些部分生图、是否有必须构建期预置的例外、哪些图片是进入正常图片体验前必须 ready 的 required 资产。默认生图时机为 `first-run-cache`：首次打开显示资产准备页，生成缺失图片并写入 IndexedDB，之后刷新或再次打开直接读 IndexedDB Blob 缓存；如果生图失败，默认允许用户跳过资产准备页进入无图片体验，但失败资产不得标记为 ready。
+- 只要需要真实位图资产，玩法方案和最终 spec 都必须默认包含图片预生成 / 预加载闸门：required 图片进入正常图片体验前必须全部生成 / 缓存 / 加载 / 解码完成；如果生图失败，可进入明确标记的无图片体验。
 - 问清楚后先生成 `spec.gameplay.md`，让用户确认；用户确认后再生成最终 `spec.md`。
 
 ## 推荐轮次
@@ -45,7 +45,7 @@
 
 1. 哪些部分需要真实生图？
 2. 默认使用 `first-run-cache`：首次打开生成并缓存，之后不再生图。有没有少数图片必须 `build-time` 预置，或需要 `hybrid`？
-3. 哪些图片是进入核心体验前必须 ready 的 required 图片，哪些如果失败也不阻塞核心体验的 optional 图片？
+3. 哪些图片是进入正常图片体验前必须 ready 的 required 图片，哪些如果失败也不阻塞核心体验的 optional 图片？如果 required 图片失败，是否允许用户继续无图片体验？
 4. 有无画风 / UI 氛围偏好？
 5. 如果产品要求高精度 SVG / Canvas / 互动模拟，需要确认哪些对象必须精细绘制、哪些过程需要粒子/连续动画、是否要达到物理/化学参考 spec 那种绘制手册级指导。
 6. 如果用户没给画风，按内容和玩法推导媒介、情绪、材质、光影、构图和动效气质。
@@ -75,7 +75,7 @@ generated-specs/<project-name>/spec.gameplay.md
 - 内容槽位和 `skills` 映射。
 - 页面 / 状态粗结构。
 - 生图资产范围、生图时机、required / optional 图片划分；默认写 `first-run-cache`，除非用户明确要求 `build-time` / `hybrid`。
-- 图片预生成 / 预加载闸门：required 图片全部 ready 前不得进入核心体验；cache hit 只读 IndexedDB Blob 并创建 object URL；cache miss 生成缺失图片、转 Blob、写入 IndexedDB、load/decode。
+- 图片预生成 / 预加载闸门：required 图片全部 ready 前不得进入正常图片体验；cache hit 只读 IndexedDB Blob 并创建 object URL；cache miss 生成缺失图片、转 Blob、写入 IndexedDB、load/decode；生图失败时允许进入无图片体验，失败资产保持 failed / ready=false 并保留重试入口。
 - 视觉方向。
 - 如果需要高精度 SVG / Canvas，写清最终 spec 将包含可视化原语速查、SVG/CSS 质感配方、动效模式、标注/图例/交互态和常见画错点。
 - 准确性模式。

@@ -84,7 +84,7 @@ Codex 会先读取这个项目里的规则和参考 spec，然后直接开始第
 
 两种模式都会保留 UI 设计、粒子氛围、SVG/CSS 技巧、生图约束、内容文件契约、数据 Schema 和验收标准。如果产品要求高精度 SVG / Canvas / 互动模拟，最终 spec 还必须包含领域专项绘制指南，不能只写“高精度”“酷炫”“分层”。
 
-区别只在于：可填充成品框架的“读取内容文件、提取内容、填充数据”发生在后续管线 / 构建阶段；如果需要真实图片，默认使用 `first-run-cache`：首次打开先查 IndexedDB，cache hit 读取 Blob、创建本次会话 object URL、加载并解码，cache miss 才显示资产准备页、调用真实生图、把图片数据转成 Blob 写入 IndexedDB，再创建 object URL、加载并解码；之后同一浏览器 / 同一域名刷新或再打开只读 IndexedDB Blob 缓存，不重新生图。生成工具框架则把输入、生成、预览、导出作为最终用户可操作的核心功能；用户生成的结果图也应写入 IndexedDB / 历史记录，刷新后已有结果不得无故重新生成。
+区别只在于：可填充成品框架的“读取内容文件、提取内容、填充数据”发生在后续管线 / 构建阶段；如果需要真实图片，默认使用 `first-run-cache`：首次打开先查 IndexedDB，cache hit 读取 Blob、创建本次会话 object URL、加载并解码，cache miss 才显示资产准备页、调用真实生图、把图片数据转成 Blob 写入 IndexedDB，再创建 object URL、加载并解码；如果生图工具返回 URL，必须先确认该 URL 在当前页面可读取并可转成真实图片 Blob，再进入缓存和 ready 流程；如果生图、URL 转 Blob、加载或解码失败，允许用户跳过资产准备页进入显式无图片体验，失败资产保持 failed / ready=false 并提供重试。之后同一浏览器 / 同一域名刷新或再打开只读 IndexedDB Blob 缓存，不重新生图。生成工具框架则把输入、生成、预览、导出作为最终用户可操作的核心功能；用户生成的结果图也应写入 IndexedDB / 历史记录，刷新后已有结果不得无故重新生成。
 
 如果你不确定，就选可填充成品框架。`fixed-content` / `generator-tool` 只作为 Spec Forge 内部模式或玩法方案信息；最终 `spec.md` 应用自然语言描述产品形态，不直接暴露这些内部标签。
 
@@ -113,7 +113,7 @@ Codex 不会一上来直接写完整 spec。
 第三轮：生图和视觉
 
 1. 要不要真实 AI 生图？如果要，哪些部分需要图：标题背景、章节插图、角色、图鉴条目、卡牌、结局 CG 等。
-2. 默认图片使用 `first-run-cache`：首次打开先查 IndexedDB，cache hit 读取 Blob、创建 object URL、加载并解码，缺图才生成、转 Blob 写入 IndexedDB、再加载解码，之后同一浏览器 / 同一域名刷新或再打开不重新生图；有没有少数图片必须实现时先生成并打包，或需要混合模式？
+2. 默认图片使用 `first-run-cache`：首次打开先查 IndexedDB，cache hit 读取 Blob、创建 object URL、加载并解码，缺图才生成、转 Blob 写入 IndexedDB、再加载解码，之后同一浏览器 / 同一域名刷新或再打开不重新生图；如果生图返回 URL，需要确认它可读取并可转成图片 Blob；如果生图失败，是否允许用户跳过资产准备页进入无图片体验；有没有少数图片必须实现时先生成并打包，或需要混合模式？
 3. UI / 画风 / 氛围有什么偏好？如果没有，Codex 会按媒介、情绪、材质、光影、构图等维度推导。
 
 第四轮：准确性和硬约束
@@ -254,12 +254,14 @@ specforge/modules/fixed-spec-skeleton.md
 - 需要说明哪些部分生图
 - 需要声明生图时机；默认是 `first-run-cache`，只有明确需要时才使用构建期生成 / 混合
 - 首次打开必须先查 IndexedDB；cache hit 只读取 Blob、创建本次会话 object URL、加载并解码，不显示完整生成进度；cache miss 才显示“正在生成图片 / 正在准备视觉资产”的资产准备页
-- 生成后的图片 Blob 必须写入 IndexedDB；required 图片必须在进入核心体验前完成 `generated + cached/cache_hit + loaded + decoded + ready`，核心体验阶段不得逐页生成、逐页请求或逐页等待 required 图片
+- 如果生图工具返回 URL，必须先确认该 URL 在当前页面可读取、可转成真实图片 Blob，并通过 MIME / load / decode 校验；失败的 URL 不得当作已生成或已缓存图片
+- 生成后的图片 Blob 必须写入 IndexedDB；required 图片必须在进入正常图片体验前完成 `generated + cached/cache_hit + loaded + decoded + ready`，正常图片体验阶段不得逐页生成、逐页请求或逐页等待 required 图片
+- 如果生图、URL 转 Blob、加载或解码失败，允许用户跳过资产准备页进入显式无图片体验；失败资产必须保留 failed / ready=false 状态，并提供重试入口
 - localStorage 只能保存轻量进度和状态，不能保存图片、base64、大 data URL、Blob 字符串或 object URL
 - 必须有统一画风基底
 - 每张图必须写详细 prompt
 - 必须有静态 `IMAGE_ASSET_MANIFEST` 和运行时 `IMAGE_ASSET_RUNTIME_STATE`
-- 无法生图时必须停下，不能假装完成
+- 无法生图时不能假装完成图片体验，不能用占位图冒充生成结果；可以交付显式标记的无图片体验
 
 这些限制是为了防止下一步模型偷懒。
 
