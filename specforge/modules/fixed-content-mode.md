@@ -18,7 +18,7 @@
 
 - 最终 spec 像一份“填空试卷 + 强约束”：它规定内容槽位、映射规则、交互方式和验收标准。
 - `skills/内容文件` 提供具体主题和细节；spec 负责说明这些内容如何进入章节、题目、角色、图鉴、剧情、可视化或机制。
-- 功能清单、用户动线、信息结构描述最终用户体验；内容提取、自检等管线动作放在内容文件契约、开发指引和验收标准里。只要需要真实位图资产，默认生图是首次启动资产准备流程：先查 IndexedDB，cache hit 读取 Blob、创建 object URL 并 load/decode，cache miss 才生成缺失图片、转 Blob、写入 IndexedDB、再 load/decode；required 图片全部 ready 后进入正常图片体验。如果生图、URL 转 Blob、load 或 decode 失败，用户可以跳过资产准备页进入无图片体验，失败资产不得标记为 ready。这不改变核心玩法结构。
+- 功能清单、用户动线、信息结构描述最终用户体验；内容提取、自检等管线动作放在内容文件契约、开发指引和验收标准里。只要需要真实位图资产，默认生图是首次启动资产准备流程：先查 IndexedDB，cache hit 读取 Blob、创建 object URL 并 load/decode，cache miss 才生成缺失图片、转 Blob、写入 IndexedDB、再 load/decode；如果生图结果返回 `http://.../__runtime/llm-images/...` 这类 runtime 临时图片 URL，必须在 `fetch` / `imageUrlToFile` / Blob 转换前，把同域 HTTP 临时 URL 规范化为 HTTPS 或同源相对 URL，不得直接 fetch 原始 HTTP 临时 URL；required 图片全部 ready 后进入正常图片体验。如果生图、URL 转 Blob、load 或 decode 失败，用户可以跳过资产准备页进入无图片体验，失败资产不得标记为 ready。这不改变核心玩法结构。
 - 图片展示源必须来自 IndexedDB Blob 派生的本次会话 object URL，或构建期真实图片 seed 写入 IndexedDB 后再读取出的 Blob。
 - 当某个细节依赖内容文件时，用占位符和映射规则表达，例如 `{{CORE_THEME}}`、`{{CHAPTER_TITLE}}`、`{{KEY_OBJECT}}`、`{{ENDING_RULE}}`。
 

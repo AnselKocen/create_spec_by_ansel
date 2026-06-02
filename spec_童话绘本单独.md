@@ -257,6 +257,7 @@
    - 如果需要调用生图工具但当前环境没有可用能力，必须停下来告知用户，不能用 CSS/SVG/Canvas 替代。
 
 4. **持久化图片数据**
+   - 如果生图结果返回 `http://.../__runtime/llm-images/...` 这类 runtime 临时图片 URL，必须在 `fetch` / `imageUrlToFile` / Blob 转换前，把同域 HTTP 临时 URL 规范化为 HTTPS 或同源相对 URL；不得直接 fetch 原始 HTTP 临时 URL。
    - 每张生成结果必须转成 `Blob` 并写入 IndexedDB。
    - IndexedDB 是运行时生成图片的唯一持久化位置；localStorage 只保存阅读进度和轻量版本信息。
    - 页面显示时可以用 `URL.createObjectURL(blob)` 创建临时 object URL，但 object URL 不能当作长期存储。

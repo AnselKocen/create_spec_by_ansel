@@ -22,7 +22,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
 → 检查 IMAGE_ASSET_MANIFEST
 → IndexedDB cache lookup
 → cache hit：读取 IndexedDB Blob + 创建本次会话 object URL + load/decode
-→ cache miss：显示生成进度，调用真实生图工具/API，取得图片数据并转成 Blob，写入 IndexedDB，再创建 object URL + load/decode
+→ cache miss：显示生成进度，调用真实生图工具/API，若返回同域 runtime HTTP 临时 URL，先规范化为 HTTPS 或同源相对 URL，再转 Blob，写入 IndexedDB，再创建 object URL + load/decode
 → 所有必需图片 ready
 → 进入正常图片体验
 → 如果图片生成 / URL 转 Blob / load / decode 失败：记录失败资产，允许用户跳过资产准备页进入无图片体验
@@ -85,6 +85,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
    - 前端不得硬编码私密 API key。
    - cache hit 时不得调用生图工具/API；只有 cache miss、缓存损坏、版本变更，或用户明确重新生成时才允许调用。
    - 如果生图能力返回 URL，而不是 Blob / bytes，必须先确认该 URL 在当前页面环境中可读取为真实图片 Blob，并通过 MIME、load、decode 校验；校验成功后才能写入 IndexedDB。URL 不可读取、返回非图片、转 Blob 失败或解码失败时，必须把对应资产标记为 `failed`，不得把该 URL 当作已生成图片或缓存结果。
+   - 如果生图结果返回 `http://.../__runtime/llm-images/...` 这类 runtime 临时图片 URL，必须在 `fetch` / `imageUrlToFile` / Blob 转换前，把同域 HTTP 临时 URL 规范化为 HTTPS 或同源相对 URL；不得直接 fetch 原始 HTTP 临时 URL。
 
 4. **绑定和持久化图片数据**
    - 首次启动生图时，图片必须以 Blob 写入 IndexedDB，并在后续进入时从 IndexedDB 读取 Blob、创建 object URL、加载并解码。
@@ -105,7 +106,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
 → 为每张必需图片计算 / 校验 cache_key
 → 查询 IndexedDB
 → cache hit：Blob → object URL → load/decode → IMAGE_ASSET_RUNTIME_STATE.ready = true
-→ cache miss：generation lock → 调用真实生图 → 取得图片数据并转 Blob → 写入 IndexedDB → object URL → load/decode → ready = true
+→ cache miss：generation lock → 调用真实生图 → 若返回同域 runtime HTTP 临时 URL，先规范化为 HTTPS 或同源相对 URL → 转 Blob → 写入 IndexedDB → object URL → load/decode → ready = true
 → 所有必需图片 ready
 → 进入正常图片体验
 → 失败分支：资产标记 failed → 显示失败原因和重试入口 → 用户可选择继续无图片体验
@@ -209,6 +210,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
 - cache hit 时不得调用生图 API，只能读取 IndexedDB Blob、创建 object URL、load/decode。
 - cache miss 时只生成缺失图片，生成后必须写入 IndexedDB，再执行 load/decode。
 - 如果生图返回 URL，必须先确认该 URL 可读取为图片 Blob 并通过 MIME、load、decode 校验；校验失败时不得写入成功缓存，不得设置 ready。
+- 如果生图结果返回 `http://.../__runtime/llm-images/...` 这类 runtime 临时图片 URL，必须在 `fetch` / `imageUrlToFile` / Blob 转换前，把同域 HTTP 临时 URL 规范化为 HTTPS 或同源相对 URL；不得直接 fetch 原始 HTTP 临时 URL。
 - 每个 `cached_blob_ref` 必须指向本机缓存中的真实图片 Blob。
 - 页面展示层使用从 IndexedDB Blob 创建的 object URL，或构建期真实图片 seed 写入 IndexedDB 后再读取出的 Blob。
 - 开发者必须确认最终页面引用的是这些真实图片，而不是 CSS/SVG/Canvas/emoji/文字占位。

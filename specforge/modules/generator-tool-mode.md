@@ -42,6 +42,7 @@ spec.md + skills/内容文件
 - API / 模型调用不能用前端硬编码密钥。
 - 生图必须是真实生图，不能用 CSS/SVG/Canvas 冒充。
 - 生图结果必须转成 Blob 写入 IndexedDB，再用 `URL.createObjectURL(blob)` 创建本次会话展示源；如果生图能力返回 URL，必须先确认该 URL 在当前页面中可读取为真实图片 Blob，并通过 MIME、load、decode 校验。
+- 如果生图结果返回 `http://.../__runtime/llm-images/...` 这类 runtime 临时图片 URL，必须在 `fetch` / `imageUrlToFile` / Blob 转换前，把同域 HTTP 临时 URL 规范化为 HTTPS 或同源相对 URL；不得直接 fetch 原始 HTTP 临时 URL。
 - 生成失败必须暴露原因，不能输出伪完成品。
 - 用户输入内容需要校验、安全过滤和错误处理。
 
@@ -66,6 +67,7 @@ spec.md + skills/内容文件
 - 用户输入后生成的结果图按生成任务运行，但生成结果也必须有等效资产记录，并写入 IndexedDB / 历史记录；刷新后已有结果图不得无故重新生成。
 - 用户生成结果图的预览和历史记录必须从 IndexedDB Blob 派生 object URL。普通 HTTP cache、内存变量和 object URL 不能作为长期存储。
 - 生图返回 URL 时必须先完成可读取性校验和 Blob 转换，失败时标记该生成任务或资产为 failed，不得把 URL 本身当作已生成结果；工具自身 UI / 示例资产失败时，可以进入无图片工具界面并保留重试入口。
+- 如果生图结果返回 `http://.../__runtime/llm-images/...` 这类 runtime 临时图片 URL，必须在 `fetch` / `imageUrlToFile` / Blob 转换前，把同域 HTTP 临时 URL 规范化为 HTTPS 或同源相对 URL；不得直接 fetch 原始 HTTP 临时 URL。
 - 必须保留静态 `IMAGE_ASSET_MANIFEST`、运行时 `IMAGE_ASSET_RUNTIME_STATE` 或等效生成结果记录。
 - 只有用户明确要求时，才使用 `build-time` 或 `hybrid` 准备工具自身的视觉资产。
 - CSS/SVG/Canvas/emoji/文字占位都不是生图。

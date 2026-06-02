@@ -72,12 +72,12 @@
 
 - 本产品是否需要真实位图资产。
 - 如果不需要，写清“不需要真实生图资产”的范围，并说明核心视觉由 SVG/Canvas/CSS/HTML 实现。
-- 如果需要任何真实位图资产，必须包含完整生图契约：图片资产范围、什么是生图、什么不是生图、统一画风基底、每图 prompt、negative prompt、静态 `IMAGE_ASSET_MANIFEST`、运行时 `IMAGE_ASSET_RUNTIME_STATE`、IndexedDB 缓存记录、生图返回 URL 时的可读取性校验、失败后的无图片体验。
+- 如果需要任何真实位图资产，必须包含完整生图契约：图片资产范围、什么是生图、什么不是生图、统一画风基底、每图 prompt、negative prompt、静态 `IMAGE_ASSET_MANIFEST`、运行时 `IMAGE_ASSET_RUNTIME_STATE`、IndexedDB 缓存记录、生图返回 URL 时的可读取性校验、runtime 临时图 URL 规范化、失败后的无图片体验。
 - 必须声明 `IMAGE_GENERATION_TIMING`：`build-time` / `first-run-cache` / `hybrid`。
 - 默认使用 `first-run-cache`：最终 app 首次启动时显示主题化“正在生成图片 / 正在准备视觉资产”页面，生成缺失图片并写入 IndexedDB；之后刷新或再次打开直接读取 IndexedDB Blob、创建 object URL、加载并解码，不重新生图。
 - `build-time`：仅当用户明确要求或少量核心图必须打开即显示时使用；图片在实现 / 构建阶段生成并嵌入或打包，首次打开后仍可作为 `seed_source` 写入 IndexedDB，后续优先读缓存。
 - `hybrid`：核心图片构建期生成，次要或大量图片首次启动生成并缓存。
-- 首次启动缓存策略必须写清：资产准备页、IndexedDB Blob 存储、`cache_key` 规则、`prompt_hash` / 版本失效规则、生成锁、失败重试、cache hit 不调用生图 API、生图 URL 必须能读取为图片 Blob 后才能写入缓存、必需图片 `ready = true` 前不得进入正常图片体验。
+- 首次启动缓存策略必须写清：资产准备页、IndexedDB Blob 存储、`cache_key` 规则、`prompt_hash` / 版本失效规则、生成锁、失败重试、cache hit 不调用生图 API、生图 URL 必须能读取为图片 Blob 后才能写入缓存；如果生图结果返回 `http://.../__runtime/llm-images/...` 这类 runtime 临时图片 URL，必须在 `fetch` / `imageUrlToFile` / Blob 转换前，把同域 HTTP 临时 URL 规范化为 HTTPS 或同源相对 URL，不得直接 fetch 原始 HTTP 临时 URL；必需图片 `ready = true` 前不得进入正常图片体验。
 - 必须写清图片预生成与预加载闸门：所有 `required = true` 的图片在进入正常图片体验前必须完成 `generated + cached/cache_hit + loaded + decoded + ready`；正常图片体验阶段不得逐页生成 required 图片、不得翻到某页才请求 required 图片、不得让用户在正常图片体验中等待 required 图片加载。
 - 必须写清无图片体验：当生图、URL 转 Blob、load 或 decode 失败时，用户可以跳过资产准备页进入无图片体验；失败图片不得标记为 ready，不得用 CSS/SVG/Canvas/emoji/文字占位伪装成已生成图片，并且必须保留失败状态和重试入口。
 - 必须写清图片展示链路：从 IndexedDB 读取 Blob，并用 `URL.createObjectURL(blob)` 创建本次会话 object URL 后展示；object URL 只用于当前会话，不能长期存储。
@@ -151,7 +151,7 @@
 - 功能验收。
 - 随附内容文件验收。
 - 生图验收。
-- 首次启动图片缓存验收（所有需要真实位图资产的 spec 默认适用，除非用户明确选择纯 `build-time`）：首次缺图时显示资产准备页；图片生成后写入 IndexedDB；生图返回 URL 时必须先确认可读取为图片 Blob 并通过 load/decode；刷新或下次进入 cache hit 时只读取 IndexedDB Blob、创建 object URL、load/decode 且不调用生图 API；prompt 或版本变化时只重生成失效图片；required 图片运行时状态全部 ready 后才进入正常图片体验；生图失败时可跳过资产准备页进入无图片体验，但失败资产不得标记为 ready。
+- 首次启动图片缓存验收（所有需要真实位图资产的 spec 默认适用，除非用户明确选择纯 `build-time`）：首次缺图时显示资产准备页；图片生成后写入 IndexedDB；生图返回 URL 时必须先确认可读取为图片 Blob 并通过 load/decode；若返回 `http://.../__runtime/llm-images/...` 这类 runtime 临时图片 URL，必须先把同域 HTTP 临时 URL 规范化为 HTTPS 或同源相对 URL，不得直接 fetch 原始 HTTP 临时 URL；刷新或下次进入 cache hit 时只读取 IndexedDB Blob、创建 object URL、load/decode 且不调用生图 API；prompt 或版本变化时只重生成失效图片；required 图片运行时状态全部 ready 后才进入正常图片体验；生图失败时可跳过资产准备页进入无图片体验，但失败资产不得标记为 ready。
 - 图片展示链路验收：`<img>`、CSS 背景和 Canvas 绘制应使用 IndexedDB Blob 派生的 object URL，或构建期真实图片 seed 写入 IndexedDB 后的 Blob；object URL 不得长期存储。
 - 视觉验收。
 - 高精度 SVG/CSS 可视化验收（触发时必须适用）：检查是否有领域可视化原语速查、质感配方、标注/图例/单位、交互态反馈、参数连续动画和常见画错点自检。

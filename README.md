@@ -255,6 +255,7 @@ specforge/modules/fixed-spec-skeleton.md
 - 需要声明生图时机；默认是 `first-run-cache`，只有明确需要时才使用构建期生成 / 混合
 - 首次打开必须先查 IndexedDB；cache hit 只读取 Blob、创建本次会话 object URL、加载并解码，不显示完整生成进度；cache miss 才显示“正在生成图片 / 正在准备视觉资产”的资产准备页
 - 如果生图工具返回 URL，必须先确认该 URL 在当前页面可读取、可转成真实图片 Blob，并通过 MIME / load / decode 校验；失败的 URL 不得当作已生成或已缓存图片
+- 如果生图结果返回 `http://.../__runtime/llm-images/...` 这类 runtime 临时图片 URL，必须在 `fetch` / `imageUrlToFile` / Blob 转换前，把同域 HTTP 临时 URL 规范化为 HTTPS 或同源相对 URL；不得直接 fetch 原始 HTTP 临时 URL
 - 生成后的图片 Blob 必须写入 IndexedDB；required 图片必须在进入正常图片体验前完成 `generated + cached/cache_hit + loaded + decoded + ready`，正常图片体验阶段不得逐页生成、逐页请求或逐页等待 required 图片
 - 如果生图、URL 转 Blob、加载或解码失败，允许用户跳过资产准备页进入显式无图片体验；失败资产必须保留 failed / ready=false 状态，并提供重试入口
 - localStorage 只能保存轻量进度和状态，不能保存图片、base64、大 data URL、Blob 字符串或 object URL

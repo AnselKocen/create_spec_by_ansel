@@ -138,6 +138,7 @@ Every final spec must include an image-generation strategy section. If the produ
 - Text placeholders are not image generation.
 - A real image generation model/tool/API must be called.
 - If the image generation model/tool/API returns a URL, the app must confirm that URL is readable in the current page, convertible to a real image Blob, and passes MIME/load/decode checks before storing it in IndexedDB or marking it ready.
+- If image generation returns a `http://.../__runtime/llm-images/...` runtime temporary image URL, the app must normalize the same-host HTTP temporary URL to HTTPS or a same-origin relative URL before `fetch`, `imageUrlToFile`, or Blob conversion; it must not directly fetch the original HTTP temporary URL.
 - Each generated asset needs a detailed prompt.
 - All images in one project need a shared style prompt base.
 - The final spec must require a static `IMAGE_ASSET_MANIFEST` with asset id, purpose, required flag, plan status, initial runtime status, style prompt base, full prompt, negative prompt, aspect ratio, generation timing, cache key, prompt hash, seed source, storage driver, and safety requirements when applicable.
