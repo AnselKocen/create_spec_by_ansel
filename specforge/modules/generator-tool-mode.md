@@ -66,7 +66,7 @@ spec.md + skills/内容文件
 - 工具自身 UI / 示例资产默认使用 `first-run-cache`：cache hit 必须读取 IndexedDB Blob、创建 object URL、load/decode；cache miss 才生成、转 Blob、写入 IndexedDB。
 - 用户输入后生成的结果图按生成任务运行，但生成结果也必须有等效资产记录，并写入 IndexedDB / 历史记录；刷新后已有结果图不得无故重新生成。
 - 用户生成结果图的预览和历史记录必须从 IndexedDB Blob 派生 object URL。普通 HTTP cache、内存变量和 object URL 不能作为长期存储。
-- 生图返回 URL 时必须先完成可读取性校验和 Blob 转换，失败时标记该生成任务或资产为 failed，不得把 URL 本身当作已生成结果；工具自身 UI / 示例资产失败时，可以进入无图片工具界面并保留重试入口。
+- 生图返回 URL 时必须先完成可读取性校验和 Blob 转换，失败时标记该生成任务或资产为 failed，不得把 URL 本身当作已生成结果；工具自身 UI / 示例资产中的任意 required 或 optional 图片失败、超时或用户取消时，必须允许进入明确标记的无图片工具界面并保留重试入口，失败资产保持 failed / ready=false。
 - 如果生图结果返回 `http://.../__runtime/llm-images/...` 这类 runtime 临时图片 URL，必须在 `fetch` / `imageUrlToFile` / Blob 转换前，把同域 HTTP 临时 URL 规范化为 HTTPS 或同源相对 URL；不得直接 fetch 原始 HTTP 临时 URL。
 - 必须保留静态 `IMAGE_ASSET_MANIFEST`、运行时 `IMAGE_ASSET_RUNTIME_STATE` 或等效生成结果记录。
 - 只有用户明确要求时，才使用 `build-time` 或 `hybrid` 准备工具自身的视觉资产。
@@ -79,5 +79,5 @@ spec.md + skills/内容文件
 - 输入 → 生成 → 预览 → 使用/导出的链路可完整走通。
 - 生成失败有明确错误状态。
 - 生成结果符合 spec 的内容、安全、视觉和数据约束。
-- 生成结果已转 Blob 写入 IndexedDB，预览 / 历史记录从 Blob 创建 object URL；图片生成失败时有 failed 状态、错误原因和重试入口，不伪造结果。
+- 生成结果已转 Blob 写入 IndexedDB，预览 / 历史记录从 Blob 创建 object URL；图片生成、URL 转 Blob、load/decode 失败，或准备流程超时 / 用户取消时，有 failed 状态、错误原因和重试入口，不伪造结果。
 - UI、SVG/CSS、粒子、动效、生图、Schema、验收标准仍然完整。

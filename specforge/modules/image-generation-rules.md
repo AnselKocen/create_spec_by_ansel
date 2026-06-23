@@ -25,7 +25,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
 → cache miss：显示生成进度，调用真实生图工具/API，若返回同域 runtime HTTP 临时 URL，先规范化为 HTTPS 或同源相对 URL，再转 Blob，写入 IndexedDB，再创建 object URL + load/decode
 → 所有必需图片 ready
 → 进入正常图片体验
-→ 如果图片生成 / URL 转 Blob / load / decode 失败：记录失败资产，允许用户跳过资产准备页进入无图片体验
+→ 如果任何 required 或 optional 图片生成 / URL 转 Blob / load / decode 失败，或准备流程超时 / 用户取消：记录失败资产，允许用户跳过资产准备页进入无图片兜底体验
 → 之后刷新 / 再打开只读 IndexedDB Blob，不重新生图
 ```
 
@@ -96,7 +96,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
 
 ## 首次启动生图缓存流程
 
-当 `IMAGE_GENERATION_TIMING` 为 `first-run-cache` 或 `hybrid` 时，最终 app 必须包含一个主题化资产准备页。正常图片体验中，凡是必需图片没有 ready，用户不得进入依赖这些图片的核心体验；但如果生图失败或图片转换失败，必须允许用户跳过资产准备页进入明确标记的无图片体验。
+当 `IMAGE_GENERATION_TIMING` 为 `first-run-cache` 或 `hybrid` 时，最终 app 必须包含一个主题化资产准备页。正常图片体验中，凡是必需图片没有 ready，用户不得进入依赖这些图片的核心体验；但 required 是进入正常图片体验的闸门，不是阻止用户进入产品的死锁。如果任何 required 或 optional 图片生图、URL 转 Blob、load、decode 失败，或准备流程超时 / 用户取消，必须允许用户跳过资产准备页进入明确标记的无图片兜底体验。
 
 固定流程：
 
@@ -109,7 +109,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
 → cache miss：generation lock → 调用真实生图 → 若返回同域 runtime HTTP 临时 URL，先规范化为 HTTPS 或同源相对 URL → 转 Blob → 写入 IndexedDB → object URL → load/decode → ready = true
 → 所有必需图片 ready
 → 进入正常图片体验
-→ 失败分支：资产标记 failed → 显示失败原因和重试入口 → 用户可选择继续无图片体验
+→ 兜底分支：任意 required / optional 资产失败、超时或用户取消 → 资产标记 failed / ready=false → 显示失败原因和重试入口 → 用户可选择继续无图片体验
 ```
 
 资产准备页要求：
@@ -119,14 +119,15 @@ IMAGE_GENERATION_TIMING = first-run-cache
 - cache miss 时显示生成进度：已完成数量 / 总数量、当前图片用途、简短状态。
 - 保持产品主题 UI：主题面板、粒子、进度条、轻动效等，不做成空白 loading 页。
 - 必需图片完成前不进入正常图片体验；如果进入无图片体验，必须清楚标记当前为降级状态，并保留重试入口。
-- 可选图片可以后台继续生成，但对应页面需要有清楚的等待状态。
+- 资产准备页必须提供兜底出口：任意 required 或 optional 图片失败、URL 转 Blob 失败、load/decode 失败、准备流程超时或用户取消时，用户都可以跳过图片继续进入 no-image 模式。该出口不是生图成功路径，不得把失败资产标记为 ready。
+- 可选图片可以后台继续生成，但对应页面需要有清楚的等待状态；可选图片失败、超时或取消时也必须记录 failed / ready=false，并允许用户继续无图片或弱图片体验。
 
 图片预生成与预加载闸门：
 
 - 进入正常图片体验前，所有 `required = true` 的图片必须完成 `generated + cached/cache_hit + loaded + decoded + ready`。
 - 核心阅读 / 游戏 / 学习阶段不得逐页生成 required 图片、不得翻到某页才请求 required 图片、不得让用户在核心流程中等待 required 图片加载。
 - 如果某张图片会在首屏、章节入口、核心页面或必经结局中展示，它必须被列为 required，不得用 optional 绕过准备闸门。
-- optional 图片可以不阻塞核心体验，但必须有明确运行时状态、失败原因和重试入口；不得用 CSS / SVG / Canvas 占位伪装成真实生图结果。
+- optional 图片可以不阻塞正常图片体验，但必须有明确运行时状态、失败原因和重试入口；不得用 CSS / SVG / Canvas 占位伪装成真实生图结果。
 - 无图片体验是失败降级，不是生图成功：不得把 CSS / SVG / Canvas / emoji / 文字底图登记为生成图，也不得把失败资产标记为 ready。界面应隐藏或弱化依赖图片的区域，用文本、布局、颜色和已有 SVG/CSS UI 保持可玩 / 可读，并允许用户稍后重试生图。
 
 缓存策略要求：
@@ -141,7 +142,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
 失败处理要求：
 
 - 单张失败时显示原因，保留错误状态和重试入口，并说明缺失的资产 ID / 用途。
-- 如果必需图片无法生成，不能把最终图片体验标记为完成；但必须提供“跳过图片继续”入口，让用户离开资产准备页进入无图片体验。无图片体验必须保留失败状态、重试入口和必要说明。
+- 如果任意 required 或 optional 图片无法生成、无法转换为 Blob、无法 load/decode、准备流程超时或被用户取消，不能把最终图片体验标记为完成；但必须提供“跳过图片继续”入口，让用户离开资产准备页进入无图片兜底体验。无图片体验必须保留失败状态、重试入口和必要说明。
 
 ## 生图资产闸门
 
@@ -214,7 +215,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
 - 每个 `cached_blob_ref` 必须指向本机缓存中的真实图片 Blob。
 - 页面展示层使用从 IndexedDB Blob 创建的 object URL，或构建期真实图片 seed 写入 IndexedDB 后再读取出的 Blob。
 - 开发者必须确认最终页面引用的是这些真实图片，而不是 CSS/SVG/Canvas/emoji/文字占位。
-- 如果图片生成失败，必须记录失败的资产 ID、失败原因和已尝试提示词；提供重试入口，用户选择重试时应调整提示词或生成参数；同时允许用户继续无图片体验或稍后重试。
+- 如果图片生成、URL 转 Blob、load/decode 失败，或准备流程超时 / 用户取消，必须记录失败的资产 ID、失败原因和已尝试提示词；提供重试入口，用户选择重试时应调整提示词或生成参数；同时允许用户继续无图片体验或稍后重试。
 - 在必需图片资产未通过闸门前，不得把正常图片体验标记为完成；无图片体验必须作为明确降级状态验收。
 
 ## 如果无法生图

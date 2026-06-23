@@ -69,9 +69,9 @@
 
 8. **必须保留的可复用强约束**
    - 随附内容文件限制：必须读取完整 `skills/` 或内容文件，必须写清内容文件如何映射进产品，并让核心内容可追溯到文件原文。
-   - 生图限制：哪些部分生图、什么是生图、什么不是生图、必须提示词、统一画风基底、生图资产闸门、静态 `IMAGE_ASSET_MANIFEST`、运行时 `IMAGE_ASSET_RUNTIME_STATE`、IndexedDB 缓存记录、`IMAGE_GENERATION_TIMING`、生图返回 URL 时的可读取性校验、runtime 临时图 URL 规范化、失败后的无图片体验。
+   - 生图限制：哪些部分生图、什么是生图、什么不是生图、必须提示词、统一画风基底、生图资产闸门、静态 `IMAGE_ASSET_MANIFEST`、运行时 `IMAGE_ASSET_RUNTIME_STATE`、IndexedDB 缓存记录、`IMAGE_GENERATION_TIMING`、生图返回 URL 时的可读取性校验、runtime 临时图 URL 规范化、失败 / 超时 / 用户取消后的无图片兜底体验。
    - 首次启动生图缓存：凡是需要真实位图资产，默认最终 spec 必须要求资产准备页、IndexedDB Blob 缓存、cache key / prompt hash / 版本失效、生成锁、失败重试、cache hit 不重新生图、URL 转 Blob / load / decode 校验和缓存验收；如果生图结果返回 `http://.../__runtime/llm-images/...` 这类 runtime 临时图片 URL，必须在 `fetch` / `imageUrlToFile` / Blob 转换前，把同域 HTTP 临时 URL 规范化为 HTTPS 或同源相对 URL，不得直接 fetch 原始 HTTP 临时 URL。只有用户明确选择纯 `build-time` 时，才可以不把资产准备页作为首屏流程，但仍要有静态资产清单和真实生图验收。
-   - 图片预生成 / 预加载闸门：所有 required 图片进入正常图片体验前必须完成 `generated + cached/cache_hit + loaded + decoded + ready`；正常图片体验阶段不得逐页生成、逐页请求或逐页等待 required 图片。若生图失败，用户可以跳过资产准备页进入无图片体验，但失败图片不得标记为 ready。
+   - 图片预生成 / 预加载闸门：所有 required 图片进入正常图片体验前必须完成 `generated + cached/cache_hit + loaded + decoded + ready`；正常图片体验阶段不得逐页生成、逐页请求或逐页等待 required 图片。required 是正常图片体验闸门，不是阻止用户进入产品的死锁；任何 required 或 optional 图片生图、URL 转 Blob、load/decode 失败，或准备流程超时 / 用户取消时，用户必须可以跳过资产准备页进入无图片兜底体验，但失败图片不得标记为 ready。
    - 图片展示链路：图片必须以 Blob 写入 IndexedDB，再用 `URL.createObjectURL(blob)` 创建本次会话展示源；object URL 不能长期存储，刷新后必须重新从 IndexedDB Blob 创建。
    - UI 美化：标题不是普通 h1，按钮/卡片/面板必须主题化。
    - SVG/CSS 技巧：用 SVG 做装饰、图标、边框、进度，CSS 做状态和动效。
@@ -86,8 +86,8 @@
 10. **保留强约束措辞**
    - 诸如“最高优先级”“必须实现”“不可更改”“不通过则判定未完成”“什么不是生图”等内容不能弱化。
    - 每份最终 spec 都必须保留“生图策略与资产契约”章节。如果本产品不需要真实位图资产，必须在该章节中明确写清“不需要真实生图资产”的范围；如果需要任何真实位图资产，必须完整插入生图契约。
-   - 如果产品需要真实位图资产，默认必须把资产准备页写成进入正常图片体验前的视觉资产准备流程，不能把它写成普通生成器玩法；生图失败时允许进入明确标记的无图片体验。
-   - 如果产品需要真实位图资产，默认必须把“图片写入 IndexedDB Blob → 从 IndexedDB 读 Blob → 创建本次会话 object URL → load/decode → ready”写成唯一通过正常图片体验闸门的展示链路；如果生图失败，可以进入明确标记的无图片体验。
+   - 如果产品需要真实位图资产，默认必须把资产准备页写成进入正常图片体验前的视觉资产准备流程，不能把它写成普通生成器玩法；任何 required 或 optional 图片准备失败、超时或用户取消时必须允许进入明确标记的无图片兜底体验。
+   - 如果产品需要真实位图资产，默认必须把“图片写入 IndexedDB Blob → 从 IndexedDB 读 Blob → 创建本次会话 object URL → load/decode → ready”写成唯一通过正常图片体验闸门的展示链路；如果图片准备失败、超时或用户取消，可以进入明确标记的无图片兜底体验。
    - 如果用户选择需要生图，不能提供 CSS/SVG/Canvas 占位图作为替代方案，也不能把“待生图”标记为通过验收；无图片体验必须保留失败状态和重试入口。
 
 11. **输出完整 Markdown**

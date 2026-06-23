@@ -15,7 +15,7 @@
 | 交互方式 | 点击推进、滑块调参、地图点选/框选、拖拽标注、图层切换、时间轴、排序/匹配、选择答案 |
 | 内容规模 | 5-7 章；每章 3-4 个知识点；总题量 20-25 题；每章 3 个成就 |
 | 准确性模式 | strict |
-| 生图范围 | 标题页 / 全局背景图需要真实位图生图；核心地图、剖面、气候图和地理模拟必须用 SVG/Canvas/HTML 实现 |
+| 生图范围 | 首页 / 全局背景图需要真实位图生图；核心地图、剖面、气候图和地理模拟必须用 SVG/Canvas/HTML 实现 |
 | UI 风格策略 | 默认 `atlas-light` 明亮专业地图册；可按内容选择 `field-expedition`、`satellite-gis`、`earth-science-museum`、`night-observatory` 等预设 |
 | IMAGE_GENERATION_TIMING | first-run-cache |
 | 运行与存储 | 纯前端单文件；进度使用 localStorage；背景图片 Blob 使用 IndexedDB 缓存 |
@@ -119,15 +119,15 @@
 
 ### 整体气质
 
-视觉方向为：**可变地理视觉系统：明亮专业地图册为默认，按内容切换多套 UI 风格，并始终保留多彩地理语义色板**。
+视觉方向为：**可变地理视觉系统：明亮专业地图册为默认，按内容选择 UI 风格，并始终保留多彩地理语义色板**。
 
-用户打开页面时，应首先感到这是一个可操作、可判读、颜色丰富但秩序清楚的地理学习工作台，而不是被单一黑色科技面板包住的通用 dashboard。前景始终是可操作的地形沙盘、地图图层、气候图、风场箭头、洋流流线、雨带粒子和区域图层；背景通过真实生图获得，并根据 `UI_STYLE_PRESET` 匹配不同风格。
+用户打开页面时，应首先感到这是一个可操作、可判读、颜色丰富但秩序清楚的地理学习工作台。前景始终是可操作的地形沙盘、地图图层、气候图、风场箭头、洋流流线、雨带粒子和区域图层；背景通过真实生图获得，并根据 `UI_STYLE_PRESET` 匹配不同风格。
 
-默认风格为 `atlas-light`：明亮专业地图册 + 动态地形沙盘 + 多彩地理数据图层。`night-observatory` 仅作为灾害、大气、海洋、夜间观测等内容的可选深色预设，不得作为唯一默认。
+默认风格为 `atlas-light`：明亮专业地图册 + 动态地形沙盘 + 多彩地理数据图层。`night-observatory` 作为灾害、大气、海洋、夜间观测等内容的可选深色预设。
 
 ### UI 风格预设
 
-最终实现必须在构建 / 填充阶段选择一个初始 `UI_STYLE_PRESET`，并可选地在设置中允许最终用户切换。无论使用哪种风格，地理变量的颜色编码、图例、单位和可读性优先级都高于装饰风格。
+最终实现必须在构建 / 填充阶段选择一个全局 `UI_STYLE_PRESET`。无论选择哪种风格，地理变量的颜色编码、图例、单位和可读性优先级都高于装饰风格。
 
 | 预设 ID | 风格名称 | 适合内容 | 背景 / 表面 | 面板和控件 | 氛围动效 |
 |---------|----------|----------|-------------|------------|----------|
@@ -143,8 +143,8 @@
 - 小学科普或通识内容优先 `earth-science-museum`，保持明亮、亲近、可读。
 - 区域案例、城市、交通、资源和人口分析优先 `satellite-gis`。
 - 野外地貌、水文、生态和研学路线优先 `field-expedition`。
-- `night-observatory` 适合特定章节或全局主题，但不能让所有页面都变成单一深蓝黑科技风。
-- 同一产品可以使用一个全局预设，也可以让章节继承全局预设并按章节主题色轻微变化；不得每页随机换风格导致体验割裂。
+- `night-observatory` 适合特定章节或全局主题。
+- 同一产品选择一个全局预设；章节可继承全局预设并按章节主题色轻微变化，避免每页随机换风格导致体验割裂。
 
 ### 视觉层级
 
@@ -160,7 +160,7 @@
 ### 背景系统
 
 - 背景图必须由真实生图模型或图像生成 API/工具生成。
-- 背景图方向必须来自当前 `UI_STYLE_PRESET` 的画风基底，例如明亮地图册、野外研学台、GIS 工作台、地球科学展厅或夜间观测站；不得固定写死为黑色观测站。
+- 背景图方向必须来自当前 `UI_STYLE_PRESET` 的画风基底，例如明亮地图册、野外研学台、GIS 工作台、地球科学展厅或夜间观测站。
 - 背景图固定铺满视口：`background-size: cover; background-position: center; background-attachment: fixed`。
 - 背景图上方叠加中性调和层：明亮预设可用 `rgba(255,255,255,0.28)`、`rgba(245,247,242,0.18)` 或轻纸纹；深色预设可用 `rgba(0,0,0,0.28-0.42)`。
 - 调和层必须保持中性，不得使用带强色相的遮罩，以免污染地图图层和气候图颜色判断。
@@ -195,7 +195,7 @@
 
 | 用途 | 方向 | 说明 |
 |------|------|------|
-| 背景/表面 | 雾白、浅灰地图纸、暖白、岩灰、浅钢蓝、低饱和墨绿；深色预设可用炭黑、深海蓝 | 与背景图融合，给图层留出对比；黑色不是默认 |
+| 背景/表面 | 雾白、浅灰地图纸、暖白、岩灰、浅钢蓝、低饱和墨绿；深色预设可用炭黑、深海蓝 | 与背景图融合，给图层留出对比 |
 | 面板分隔 | 低透明冷灰、纸面灰、低饱和青灰、岩灰、暗橄榄灰 | 用于边框、分割线、次级容器 |
 | 文字/标注 | 深墨绿、炭灰、地图黑、冷白、浅暖白 | 对比度 ≥ 4.5:1；标注不得被彩色图层吞掉 |
 | 交互强调 | 青蓝、琥珀、雷达绿、珊瑚红、地图黄、植被绿、海洋蓝 | 用于按钮、当前章节、可交互提示，不作为随意装饰 |
@@ -243,13 +243,13 @@
 
 ### 氛围粒子与动效
 
-标题页必须实现地理主题氛围效果：
+首页必须实现地理主题氛围效果：
 
 - 经纬网扫描线：低透明度横纵线或弧线缓慢扫过。
 - 风场微粒：小点沿风向缓慢漂移。
 - 雨带粒子：少量蓝色粒子沿云带移动。
 - 等高线流光：极细线条沿地形纹理低速流动。
-- 星点/卫星轨迹可作为标题页增强，但不得喧宾夺主。
+- 星点/卫星轨迹可作为首页增强，但不得喧宾夺主。
 
 粒子约束：
 
@@ -396,7 +396,7 @@ SVG 与 Canvas 可以混用：SVG 负责精确地图、剖面、标注、坐标�
 
 ## 六、生图策略与资产契约
 
-本产品需要真实位图生图资产，但范围仅限标题页 / 全局背景图。核心地理地图、剖面、气候图、图层、图表、题目热区和地理模拟必须由 SVG / Canvas / HTML 实现，不得用 AI 图片、截图或静态位图替代。
+本产品需要真实位图生图资产，但范围仅限首页 / 全局背景图。核心地理地图、剖面、气候图、图层、图表、题目热区和地理模拟必须由 SVG / Canvas / HTML 实现，不得用 AI 图片、截图或静态位图替代。
 
 ### IMAGE_GENERATION_TIMING
 
@@ -415,7 +415,7 @@ IMAGE_GENERATION_TIMING = first-run-cache
 → 将背景图 Blob 写入 IndexedDB
 → load/decode 完成
 → IMAGE_ASSET_RUNTIME_STATE.ready = true
-→ 进入标题页 / 核心体验
+→ 进入首页 / 核心体验
 → 之后刷新或再次打开只读缓存，不重新生图
 ```
 
@@ -460,7 +460,7 @@ night geography observatory, professional cartography lab, holographic terrain s
 项目级 negative prompt：
 
 ```text
-people, readable text, watermark, logo, blurry map labels, distorted UI text, low resolution, cartoonish clutter, fantasy monsters, inaccurate flags, overexposed, messy composition, one-note black interface unless night-observatory is selected
+people, readable text, watermark, logo, blurry map labels, distorted UI text, low resolution, cartoonish clutter, fantasy monsters, inaccurate flags, overexposed, messy composition
 ```
 
 ### 静态资产计划：IMAGE_ASSET_MANIFEST
@@ -476,14 +476,14 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
   "assets": [
     {
       "id": "global_geography_style_bg",
-      "purpose": "标题页 / 全局背景图",
+      "purpose": "首页 / 全局背景图",
       "required": true,
       "plan_status": "required",
       "initial_runtime_status": "pending",
       "ui_style_preset": "{{UI_STYLE_PRESET}}",
       "style_prompt_base": "{{SELECTED_STYLE_PROMPT_BASE_FROM_UI_STYLE_PRESET}}",
       "prompt": "{{SELECTED_STYLE_PROMPT_BASE_FROM_UI_STYLE_PRESET}}, foreground contains an abstract terrain sandbox, layered contour map surfaces, climate and hydrology visualization panels with no readable text, clear wide composition with open space for UI overlays, high detail environmental concept art",
-      "negative_prompt": "people, readable text, watermark, logo, blurry map labels, distorted UI text, low resolution, cartoonish clutter, fantasy monsters, inaccurate flags, overexposed, messy composition, one-note black interface unless night-observatory is selected",
+      "negative_prompt": "people, readable text, watermark, logo, blurry map labels, distorted UI text, low resolution, cartoonish clutter, fantasy monsters, inaccurate flags, overexposed, messy composition",
       "aspect_ratio": "16:9",
       "generation_timing": "first-run-cache",
       "cache_key": "{{PROJECT_ID}}/geo-bg-v1/{{UI_STYLE_PRESET}}/global_geography_style_bg/{{PROMPT_HASH}}",
@@ -581,7 +581,7 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 - 标题可用“正在准备地理学习背景”或“正在准备 {{UI_STYLE_PRESET}} 视觉资产”。
 - 显示已完成数量 / 总数量、当前资产用途、生成状态。
 - 资产准备页的临时视觉应匹配当前 UI 风格：明亮预设使用浅色地图纸、经纬网和轻量进度条；深色预设可使用深色底和 SVG 经纬网临时氛围。不得把临时 CSS/SVG 视觉当作最终背景图。
-- 必需图片未 ready 前不得进入标题页或核心体验。
+- 必需图片未 ready 前不得进入首页或核心体验。
 - cache hit 时只显示短暂“正在载入视觉资产”，不得误导用户以为重新生图。
 
 ### 生成锁与失败处理
@@ -599,8 +599,8 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 | 优先级 | 功能名称 | 解决什么问题 | 输入 | 输出 |
 |--------|----------|--------------|------|------|
 | P0 | 首次启动背景图缓存 | 需要真实背景图且避免重复生成 | 打开 app | IndexedDB cache hit 或生成并缓存背景图 |
-| P0 | 标题页 | 建立与 `UI_STYLE_PRESET` 匹配的地理学习入口 | 点击开始/继续 | 进入章节主页 |
-| P0 | 章节主页 | 用户需要看到学习路径和解锁进度 | 点击章节 | 进入当前章节或回看已完成章节 |
+| P0 | 首页 | 应用打开后的入口页 | 点击开始游戏 / 继续游戏 | 进入章节目录 |
+| P0 | 章节目录 | 用户需要看到章节列表和解锁状态 | 点击章节 | 进入单个章节内容或回看已完成章节 |
 | P0 | 知识点四阶段闭环 | 保证学习、探索、答题、反馈在同一地理场景中完成 | 点击/调参/答题 | 动态可视化 + 解析 + 进度推进 |
 | P0 | 高精度 SVG 地理可视化 | 建立地理空间感和图像判读能力 | 内容文件填充的知识点与参数 | 地图、剖面、气候图、图层、标注 |
 | P0 | 参数探索 | 用户需要亲手改变地理变量 | 滑块、时间轴、风向旋钮、图层开关、拖拽点 | SVG/Canvas 实时响应、数值面板同步 |
@@ -619,7 +619,6 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 | P1 | 回放与慢放 | 复杂地理过程需要反复观察 | 播放/暂停/慢放 | 时间轴回放 |
 | P1 | 错题回看 | 用户需要复盘误区 | 点击错题/章节回看 | 错题场景和正确反馈 |
 | P1 | 隐藏标注挑战 | 提升图像判读训练强度 | 切换挑战模式 | 隐藏部分标签后作答 |
-| P1 | UI 风格预设切换 | 用户或教师可能需要明亮、GIS、展厅或夜间等不同视觉气质 | 设置中选择预设 | 页面表面、背景、面板和氛围动效切换；地理编码色不变 |
 | P1 | 探索彩蛋 | 奖励好奇心 | 极端但合理参数组合 | 创意成就或额外解释 |
 
 ## 八、用户动线
@@ -633,31 +632,49 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 → cache miss：资产准备页生成背景图并缓存
 → cache hit：读取 Blob 并解码
 → 背景图 ready
-→ 标题页
+→ 首页
 ```
 
 ### 核心学习路径
 
 ```text
-标题页
-→ 章节主页
+首页
+→ 点击开始游戏 / 继续游戏
+→ 章节目录
 → 选择当前可进入章节
+→ 单个章节内容
 → 章节过渡
 → [知识点闭环：讲解动态 SVG → 参数探索 → 多题型答题 → 查看反馈] × 3-4
 → 章末总结 + 成就
-→ 返回章节主页并解锁下一章
+→ 返回章节目录并解锁下一章
 → 全部章节完成
 → 通关总结 + 成就墙
 ```
 
+### 功能流转关系
+
+| 源功能 | 流向 | 目标功能 | 流转方式 |
+|--------|------|----------|----------|
+| 首页 | → | 章节目录 | 点击“开始游戏”或“继续游戏” |
+| 章节目录 | → | 章节过渡 | 点击当前可进入章节 |
+| 章节目录 | → | 章节回看 | 点击已完成章节（可回看知识点，不重新答题） |
+| 章节过渡 | → | 第 1 个知识点·讲解阶段 | 点击“进入” |
+| 讲解阶段 | → | 探索阶段 | 讲解动画播完后，点击“试试看” |
+| 探索阶段 | → | 答题阶段 | 自由探索后，点击“来挑战” |
+| 答题阶段 | → | 反馈演示 | 提交答案后自动进入 |
+| 反馈演示 | → | 下一知识点·讲解阶段 / 章末总结 | 点击继续（答错可重试本题） |
+| 章末总结 | → | 章节目录 | 点击继续（下一章自动解锁） |
+| 全部章节完成 | → | 通关页 | 自动跳转 |
+| 通关页 | → | 章节目录 | 点击重新开始或回看章节 |
+
 ### 回看路径
 
 ```text
-标题页 / 章节主页
+首页 / 章节目录
 → 已完成章节
 → 选择知识点回看
 → 查看讲解、探索、题目反馈
-→ 返回章节主页
+→ 返回章节目录
 ```
 
 ### 答题失败路径
@@ -674,17 +691,34 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 
 ## 九、信息结构
 
+### 页面层级约束
+
+本产品的页面层级必须保持为：
+
+```text
+首页
+→ 章节目录
+→ 单个章节内容
+```
+
+- 应用打开后先进入首页。
+- 首页点击开始游戏 / 继续游戏后进入章节目录。
+- 章节目录选择章节后进入单个章节内容。
+- 单个章节完成、回看结束或章节切换时返回章节目录。
+- 单个章节内容内部必须线性推进，章内不可跳转。
+- 同一时间只能显示当前阶段，不得把同一章所有知识点、题目和反馈纵向铺开成滚动长页。
+
 ### 导航结构
 
 ```text
 资产准备页
-└── 背景图缓存 ready → 标题页
+└── 背景图缓存 ready → 首页
 
-标题页
-├── 开始学习 → 章节主页
-└── 继续学习 → 章节主页（有存档时显示）
+首页
+├── 开始游戏 → 章节目录
+└── 继续游戏 → 章节目录（有存档时显示）
 
-章节主页
+章节目录
 ├── 章节列表
 │   ├── 已完成章节 → 回看
 │   ├── 当前章节 → 进入学习
@@ -692,15 +726,14 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 ├── 总进度
 └── 成就入口
 
-章节学习
-├── 章节过渡
-├── 知识点 1
+单个章节内容（线性推进，章内不可跳转）
+├── 章节过渡屏
+├── 知识点闭环（重复 3-4 次/章；同一时间只显示当前阶段）
 │   ├── 讲解阶段
 │   ├── 探索阶段
 │   ├── 答题阶段
 │   └── 反馈演示阶段
-├── 知识点 2...
-└── 章末总结
+└── 章末总结 → 返回章节目录
 
 通关页
 ├── 成就墙
@@ -709,13 +742,16 @@ people, readable text, watermark, logo, blurry map labels, distorted UI text, lo
 └── 重新开始 / 回看章节
 ```
 
-### 页面布局
+> 本产品为线性解锁路径；必须通过第 N 章才能解锁第 N+1 章。章节目录允许回看已完成章节，但单个章节内容内部必须按阶段推进，不得作为滚动长页一次性展示。
+
+### 游戏界面布局
 
 | 页面/状态 | 核心内容 | 交互方式 |
 |-----------|----------|----------|
 | 资产准备页 | 主题化生成进度、当前资产用途、错误重试 | 自动生成/重试 |
-| 标题页 | AI 背景图、主题标题、开始/继续、氛围粒子 | 点击 |
-| 章节主页 | 章节卡、解锁状态、进度、成就入口 | 点击章节 |
+| 首页 | 主题标题、开始游戏 / 继续游戏入口 | 点击 |
+| 章节目录 | 章节列表、解锁状态、进度、成就入口 | 点击章节 |
+| 单个章节内容 | 线性推进容器；同一时间只显示章节过渡、当前知识点阶段或章末总结之一 | 按当前阶段操作 |
 | 章节过渡 | 章标题、核心变量预告、地图扫描/地形抬升动效 | 点击进入 |
 | 讲解阶段 | 中央 SVG/Canvas 地理场景、同步讲解、图例 | 点击继续/播放 |
 | 探索阶段 | 可调参数面板、图层开关、地图/剖面实时响应 | 滑动、拖拽、切换 |
@@ -795,7 +831,7 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 ```json
 {
   "selected_ui_style_preset": "{{UI_STYLE_PRESET}}",
-  "available_presets": [
+  "candidate_presets": [
     "atlas-light",
     "field-expedition",
     "satellite-gis",
@@ -821,7 +857,6 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
   ],
   "constraints": [
     "geographic semantic colors override decorative UI colors",
-    "black or deep-blue dominance is allowed only when night-observatory is selected",
     "all map colors must be explained by legend or labels"
   ]
 }
@@ -1057,7 +1092,7 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 
 | 操作 | 实现方案 | 状态变化 |
 |------|----------|----------|
-| 开始学习 | 点击标题页按钮 | 进入章节主页 |
+| 开始游戏 | 点击首页按钮 | 进入章节目录 |
 | 进入章节 | 点击当前解锁章节 | 播放章节过渡 |
 | 推进讲解 | 点击继续或动画播放完成后自动显示按钮 | 进入下一讲解段或探索阶段 |
 | 调整纬度/海拔/降水等参数 | 滑块、双向滑块、方向旋钮 | 可视化实时响应，不改变答题状态 |
@@ -1116,9 +1151,7 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 ### UI 风格预设约束
 
 - 最终实现必须选择并记录 `UI_STYLE_PRESET`，默认使用 `atlas-light`。
-- `UI_STYLE_PRESET` 只控制页面表面、背景图方向、面板质感、标题氛围和装饰动效；不得改变地理数据本身的颜色语义、图例和判读规则。
-- 如果实现运行时风格切换，切换只影响 UI token、背景资产和装饰氛围；题目答案、地图图层、参数规则和地理反馈不得变化。
-- 黑色 / 深蓝科技风只能作为 `night-observatory` 的明确选择，不得让所有风格都退化成同一套黑色 dashboard。
+- `UI_STYLE_PRESET` 在构建 / 填充阶段根据内容主题确定，用于页面表面、背景图方向、面板质感、标题氛围和装饰动效；不得改变地理数据本身的颜色语义、图例和判读规则。
 
 ### strict 准确性约束
 
@@ -1156,6 +1189,9 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 4. 反馈：同一场景演示正确过程和误区。
 
 禁止每个阶段各造一个不相关图。
+四个阶段必须作为同一知识点的线性状态推进，不得同时渲染在同一滚动页面中。
+进入答题阶段必须由探索阶段的操作完成后触发；反馈阶段必须由提交答案触发；进入下一知识点必须由反馈阶段继续触发。
+章内回看可以读取已完成阶段，但默认学习路径不得跳过阶段或纵向展示全部阶段。
 
 ### 高精度 SVG 约束
 
@@ -1284,7 +1320,7 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 7. 为每个可视化定义图层、图例、参数、状态、题型和反馈演示。
 8. 先建立 `IMAGE_ASSET_MANIFEST`，按 `UI_STYLE_PRESET` 为全局背景图写完整 prompt、negative prompt、cache key 和 prompt hash。
 9. 实现首次启动图片缓存流程：查 IndexedDB，cache miss 时调用真实生图能力，写入 Blob，cache hit 不调用生图。
-10. 实现标题页、章节主页、章节过渡、知识点四阶段闭环、章末总结和通关成就墙。
+10. 实现首页、章节目录、章节过渡、知识点四阶段闭环、章末总结和通关成就墙。
 11. 实现多题型：3 选 1、地图点选/框选、拖拽标注、图层匹配、气候图判读、剖面排序、参数预测。
 12. 实现 localStorage 进度与 IndexedDB 图片缓存，严格区分两者。
 13. 对每章执行 strict 准确性自检，修正地理事实、因果、图表、单位和题目错误。
@@ -1299,7 +1335,6 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 - 禁止在前端硬编码私密模型/API key。
 - 禁止用纯文字“正确/错误”代替反馈演示。
 - 禁止为了节省实现跳过探索阶段或多题型。
-- 禁止把所有 UI 风格都做成同一套黑色 / 深蓝科技面板。
 
 ## 十六、验收标准
 
@@ -1309,8 +1344,9 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 |------|----------|----------|
 | 资产准备 | 首次缺图时显示主题化资产准备页，生成背景图并写入 IndexedDB | [ ] 通过 |
 | 缓存复用 | 刷新或再次打开时 cache hit 只读缓存，不重新调用生图 API | [ ] 通过 |
-| 标题页 | 真实生成背景图、主题标题、开始/继续按钮、氛围粒子完整 | [ ] 通过 |
-| 章节主页 | 显示章节解锁状态、进度、已完成回看 | [ ] 通过 |
+| 首页 | 真实生成背景图、主题标题、开始游戏 / 继续游戏入口完整 | [ ] 通过 |
+| 章节目录 | 显示章节解锁状态、进度、已完成回看 | [ ] 通过 |
+| 章内线性推进 | 单个章节内容同一时间只显示当前阶段，不把整章内容做成滚动长页 | [ ] 通过 |
 | 四阶段闭环 | 每个知识点包含讲解、探索、答题、反馈 | [ ] 通过 |
 | 参数探索 | 参数变化实时影响地图/剖面/气候图或相关可视化 | [ ] 通过 |
 | 多题型 | 至少实现 3 选 1、地图点选/框选、拖拽标注、图层匹配、气候图判读、剖面排序、参数预测中的多种题型 | [ ] 通过 |
@@ -1333,10 +1369,10 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 - [ ] 背景图由真实生图模型/API/工具生成。
 - [ ] CSS 渐变、SVG、Canvas、emoji、文字占位没有被当作生图。
 - [ ] `IMAGE_ASSET_MANIFEST` 包含 asset id、purpose、required、plan_status、`ui_style_preset`、style prompt base、full prompt、negative prompt、aspect ratio、generation timing、prompt hash、cache key、seed source、storage driver。
-- [ ] 背景图 prompt 与 `UI_STYLE_PRESET` 匹配，不把未选择夜间观测站的产品生成成黑色科技背景。
+- [ ] 背景图 prompt 与 `UI_STYLE_PRESET` 匹配。
 - [ ] `IMAGE_ASSET_RUNTIME_STATE` 维护 generation_status、cache_status、cached_blob_ref、loaded、decoded、ready 和 error。
 - [ ] IndexedDB 缓存记录包含 Blob、cache_key、asset_id、prompt_hash、manifest version、时间戳、状态和错误。
-- [ ] 必需背景图 `ready = true` 前不得进入标题页。
+- [ ] 必需背景图 `ready = true` 前不得进入首页。
 - [ ] 无法生图时停下报告，不交付伪完成品。
 
 ### 首次启动图片缓存验收
@@ -1368,9 +1404,7 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 ### 视觉验收
 
 - [ ] 背景图铺满视口，遮罩不遮挡前景。
-- [ ] UI 气质符合已选择的 `UI_STYLE_PRESET`；默认应呈现明亮专业地图册 / 地形沙盘气质，而不是强制黑色系。
-- [ ] 至少保留 `atlas-light`、`field-expedition`、`satellite-gis`、`earth-science-museum`、`night-observatory` 五套风格预设说明或 token。
-- [ ] 黑色 / 深蓝科技风只在 `night-observatory` 被选择时作为主导风格。
+- [ ] UI 气质符合已选择的 `UI_STYLE_PRESET`。
 - [ ] 标题有主题化字体效果，不是普通 h1。
 - [ ] 面板、按钮、图例、参数控件有清晰层级和状态。
 - [ ] 粒子不遮挡内容、不拦截点击。
@@ -1392,7 +1426,7 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 - [ ] JSON 语法合法。
 - [ ] 所有 ID 引用一致。
 - [ ] `source_ref`、章节、知识点、题目、成就、可视化之间关系完整。
-- [ ] `visual_style.json` 记录已选择的 `UI_STYLE_PRESET`、可用预设、surface tokens 和章节主题色。
+- [ ] `visual_style.json` 记录已选择的 `UI_STYLE_PRESET`、选择理由、surface tokens 和章节主题色。
 - [ ] localStorage 只保存轻量进度。
 - [ ] IndexedDB 保存图片 Blob。
 - [ ] object URL 不长期存储。
@@ -1437,8 +1471,9 @@ localStorage 不得保存图片、base64、大 data URL、Blob 字符串或 obje
 以下任一项不通过，则判定最终实现未完成：
 
 - [ ] 背景图不是由真实生图能力生成。
-- [ ] 必需背景图未 ready 就进入标题页。
+- [ ] 必需背景图未 ready 就进入首页。
 - [ ] 核心地理可视化被静态图片或纯文字替代。
+- [ ] 单个章节内容被实现成纵向滚动长页，一次性展示整章所有知识点、题目和反馈。
 - [ ] 知识点没有四阶段闭环。
 - [ ] SVG 没有图层、图例、标注和可交互状态。
 - [ ] 地理 SVG/CSS 绘制没有落实原语速查、质感配方、动效模式和常见画错点约束。
